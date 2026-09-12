@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://personal-tracker-backend-mr9z.onrender.com';
+const API_URL = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL.replace(/\/$/, '')}/api`;
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -29,7 +32,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {
-          const res = await axios.post('/api/auth/refresh/', { refresh: refreshToken });
+          const res = await axios.post(`${API_URL}/auth/refresh/`, { refresh: refreshToken });
           if (res.data?.access) {
             localStorage.setItem('access_token', res.data.access);
             originalRequest.headers.Authorization = `Bearer ${res.data.access}`;
