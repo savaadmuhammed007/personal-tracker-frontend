@@ -4,6 +4,7 @@ import { habitApi } from '../../api/habitApi';
 import { useNotification } from '../../context/NotificationContext';
 import { BookOpen, Sparkles, Bookmark, CheckCircle2, ChevronRight, Target } from 'lucide-react';
 import { QURAN_SURAHS, JUZ_PRESETS } from '../../data/quranData';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 export const QuranLogModal = ({ isOpen, onClose, habit, onSaved }) => {
   const { showToast } = useNotification();
@@ -71,6 +72,7 @@ export const QuranLogModal = ({ isOpen, onClose, habit, onSaved }) => {
 
     try {
       await habitApi.logDetails(habit.id, {
+        date: getLocalDateString(),
         surah_name: activeSurah.name,
         last_surah_name: activeSurah.name,
         last_surah_number: activeSurah.number,

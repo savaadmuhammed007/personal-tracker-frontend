@@ -14,6 +14,7 @@ import {
 import { QURAN_SURAHS, JUZ_PRESETS } from '../../data/quranData';
 import { habitApi } from '../../api/habitApi';
 import { useNotification } from '../../context/NotificationContext';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 export const QuranSection = ({
   quranHabit,
@@ -49,6 +50,7 @@ export const QuranSection = ({
     setQuickLogging(true);
     try {
       await habitApi.logDetails(quranHabit.id, {
+        date: getLocalDateString(),
         surah_name: currentSurahObj.name,
         last_surah_name: currentSurahObj.name,
         last_surah_number: currentSurahObj.number,

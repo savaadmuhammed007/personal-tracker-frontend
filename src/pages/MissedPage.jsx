@@ -55,7 +55,7 @@ export const MissedPage = () => {
 
   const handleMakeUpHabit = async (habitId, date, name) => {
     try {
-      await habitApi.toggleHabit(habitId, { date: date });
+      await habitApi.toggleHabit(habitId, { date: date, is_completed: true, action: 'complete' });
       showToast('Habit Logged', `✓ ${name} for ${date} marked completed.`);
       fetchMissed();
     } catch (e) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { HeroGreeting } from '../components/dashboard/HeroGreeting';
 import { TodayProgressSection } from '../components/dashboard/TodayProgressSection';
 import { QuranSection } from '../components/dashboard/QuranSection';
@@ -14,12 +14,27 @@ import { habitApi } from '../api/habitApi';
 import { awradApi } from '../api/awradApi';
 import { taskApi } from '../api/taskApi';
 import { usePrayers } from '../context/PrayerContext';
+import { getLocalDateString } from '../utils/dateUtils';
+
+const CACHE_HABITS_KEY = 'cached_dashboard_habits';
+const CACHE_AWRAD_KEY = 'cached_dashboard_awrad';
+const CACHE_TASKS_KEY = 'cached_dashboard_tasks';
+
+const getCachedList = (key) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : [];
+  } catch {
+    return [];
+  }
+};
 
 export const HomePage = () => {
   const { prayers, completed_count: prayersCompleted } = usePrayers();
-  const [habits, setHabits] = useState([]);
-  const [awrad, setAwrad] = useState([]);
-  const [tasks, setTasks] = useState([]);
+  // Instant render from localStorage cache (eliminates initial empty lag!)
+  const [habits, setHabits] = useState(() => getCachedList(CACHE_HABITS_KEY));
+  const [awrad, setAwrad] = useState(() => getCachedList(CACHE_AWRAD_KEY));
+  const [tasks, setTasks] = useState(() => getCachedList(CACHE_TASKS_KEY));
   const [timelineRefresh, setTimelineRefresh] = useState(0);
 
   // Modals state
@@ -27,17 +42,36 @@ export const HomePage = () => {
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
+  // Sequence guard against out-of-order responses
+  const fetchSeqRef = useRef(0);
+
   const fetchDashboardData = useCallback(async () => {
+    const currentSeq = ++fetchSeqRef.current;
+    const localDate = getLocalDateString();
     try {
       const [habitsRes, awradRes, tasksRes] = await Promise.all([
-        habitApi.getHabits(),
-        awradApi.getAwrad(),
-        taskApi.getTasks({ filter: 'today' }),
+        habitApi.getHabits({ date: localDate }),
+        awradApi.getAwrad({ date: localDate }),
+        taskApi.getTasks({ filter: 'today', date: localDate }),
       ]);
-      setHabits(Array.isArray(habitsRes?.data) ? habitsRes.data : habitsRes?.data?.results || []);
-      setAwrad(Array.isArray(awradRes?.data) ? awradRes.data : awradRes?.data?.results || []);
-      setTasks(Array.isArray(tasksRes?.data) ? tasksRes.data : tasksRes?.data?.results || []);
+
+      // Discard stale in-flight response if a newer fetch was triggered
+      if (currentSeq !== fetchSeqRef.current) return;
+
+      const habitsData = Array.isArray(habitsRes?.data) ? habitsRes.data : habitsRes?.data?.results || [];
+      const awradData = Array.isArray(awradRes?.data) ? awradRes.data : awradRes?.data?.results || [];
+      const tasksData = Array.isArray(tasksRes?.data) ? tasksRes.data : tasksRes?.data?.results || [];
+
+      setHabits(habitsData);
+      setAwrad(awradData);
+      setTasks(tasksData);
       setTimelineRefresh((prev) => prev + 1);
+
+      try {
+        localStorage.setItem(CACHE_HABITS_KEY, JSON.stringify(habitsData));
+        localStorage.setItem(CACHE_AWRAD_KEY, JSON.stringify(awradData));
+        localStorage.setItem(CACHE_TASKS_KEY, JSON.stringify(tasksData));
+      } catch {}
     } catch (e) {
       console.error('Failed to load dashboard data:', e);
     }
@@ -46,6 +80,133 @@ export const HomePage = () => {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  // Optimistic habit toggle: provides 0ms instant checkmark & streak update
+  const handleOptimisticToggleHabit = async (habit) => {
+    const localDate = getLocalDateString();
+    const isCurrentlyDone = Boolean(habit.today_completion);
+    const targetState = !isCurrentlyDone;
+
+    // 1. Instant optimistic state update
+    setHabits((prev) => {
+      const updated = prev.map((h) => {
+        if (h.id === habit.id) {
+          const newCompletion = targetState
+            ? {
+                id: h.today_completion?.id || `temp-${Date.now()}`,
+                date: localDate,
+                completed_at: new Date().toISOString(),
+              }
+            : null;
+          const newStreak = targetState
+            ? (h.current_streak || 0) + 1
+            : Math.max(0, (h.current_streak || 1) - 1);
+
+          return {
+            ...h,
+            today_completion: newCompletion,
+            current_streak: newStreak,
+          };
+        }
+        return h;
+      });
+      try {
+        localStorage.setItem(CACHE_HABITS_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // 2. Network request with explicit targetState (idempotent)
+    try {
+      const res = await habitApi.toggleHabit(habit.id, {
+        date: localDate,
+        is_completed: targetState,
+        action: targetState ? 'complete' : 'incomplete',
+      });
+
+      if (res.data?.completion !== undefined || res.data?.streaks) {
+        setHabits((prev) => {
+          const next = prev.map((h) => {
+            if (h.id === habit.id) {
+              return {
+                ...h,
+                today_completion: res.data.is_completed ? res.data.completion : null,
+                current_streak: res.data.streaks?.current_streak ?? h.current_streak,
+                longest_streak: res.data.streaks?.longest_streak ?? h.longest_streak,
+              };
+            }
+            return h;
+          });
+          try {
+            localStorage.setItem(CACHE_HABITS_KEY, JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      }
+      setTimelineRefresh((prev) => prev + 1);
+      return res;
+    } catch (e) {
+      console.error('Failed to toggle habit:', e);
+      // Revert on error
+      fetchDashboardData();
+      throw e;
+    }
+  };
+
+  // Optimistic task toggle
+  const handleOptimisticToggleTask = async (task) => {
+    const isCompleted = task.status === 'completed';
+    const nextStatus = isCompleted ? 'pending' : 'completed';
+
+    setTasks((prev) => {
+      const updated = prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus } : t));
+      try {
+        localStorage.setItem(CACHE_TASKS_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    try {
+      const res = await taskApi.toggleTask(task.id, {
+        status: nextStatus,
+        is_completed: nextStatus === 'completed',
+        action: nextStatus === 'completed' ? 'complete' : 'incomplete',
+      });
+      setTimelineRefresh((prev) => prev + 1);
+      return res;
+    } catch (e) {
+      console.error('Failed to toggle task:', e);
+      fetchDashboardData();
+      throw e;
+    }
+  };
+
+  // Optimistic Awrad update
+  const handleOptimisticUpdateAwrad = async (id, delta, currentCount, targetCount) => {
+    const newCount = Math.max(0, currentCount + delta);
+    const isCompleted = newCount >= targetCount;
+    const progressPct = targetCount > 0 ? Math.min(100, Math.round((newCount / targetCount) * 100)) : 0;
+
+    setAwrad((prev) => {
+      const updated = prev.map((a) =>
+        a.id === id ? { ...a, today_count: newCount, is_completed: isCompleted, progress_percentage: progressPct } : a
+      );
+      try {
+        localStorage.setItem(CACHE_AWRAD_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    try {
+      const res = await awradApi.increment(id, { delta, date: getLocalDateString() });
+      setTimelineRefresh((prev) => prev + 1);
+      return res;
+    } catch (e) {
+      console.error('Failed to update awrad:', e);
+      fetchDashboardData();
+      throw e;
+    }
+  };
 
   // Compute live breakdown stats with array safety
   const safeAwrad = Array.isArray(awrad) ? awrad : [];
@@ -108,6 +269,7 @@ export const HomePage = () => {
         <DailyHabitsSection
           habitsList={habits}
           onHabitUpdated={fetchDashboardData}
+          onToggleHabit={handleOptimisticToggleHabit}
           onOpenQuranModal={(habit) => setSelectedQuranHabit(habit)}
           onOpenAddModal={() => setIsHabitModalOpen(true)}
         />
@@ -118,6 +280,7 @@ export const HomePage = () => {
         <QuickAwradSection
           awradList={awrad}
           onAwradUpdated={fetchDashboardData}
+          onUpdateAwrad={handleOptimisticUpdateAwrad}
         />
       </div>
 
@@ -126,6 +289,7 @@ export const HomePage = () => {
         <DailyTasksSummary
           tasksList={tasks}
           onTaskUpdated={fetchDashboardData}
+          onToggleTask={handleOptimisticToggleTask}
           onOpenAddModal={() => setIsTaskModalOpen(true)}
         />
       </div>

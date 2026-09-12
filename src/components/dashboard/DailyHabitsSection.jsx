@@ -1,10 +1,12 @@
-import React from 'react';
-import { Check, Flame, BookOpen, Clock, Plus, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Flame, BookOpen, Clock, Plus, Sparkles, Loader2 } from 'lucide-react';
 import { habitApi } from '../../api/habitApi';
 import { useNotification } from '../../context/NotificationContext';
+import { getLocalDateString } from '../../utils/dateUtils';
 
-export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onOpenQuranModal, onOpenAddModal }) => {
+export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, onOpenQuranModal, onOpenAddModal }) => {
   const { showToast } = useNotification();
+  const [pendingHabitIds, setPendingHabitIds] = useState(new Set());
   const nonQuranHabits = (habitsList || []).filter((h) => h.category !== 'quran');
 
   // Convert JS Sunday(0)..Saturday(6) to 0=Mon..6=Sun
@@ -30,14 +32,34 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onOpenQuranModa
   );
 
   const handleToggle = async (habit) => {
+    if (pendingHabitIds.has(habit.id)) return;
+    setPendingHabitIds((prev) => new Set(prev).add(habit.id));
+
+    const wasDone = Boolean(habit.today_completion);
+    if (!wasDone) {
+      showToast('Habit Completed', `✓ ${habit.name} logged successfully!`);
+    }
+
     try {
-      const res = await habitApi.toggleHabit(habit.id);
-      if (onHabitUpdated) onHabitUpdated();
-      if (res.data.is_completed) {
-        showToast('Habit Completed', `✓ ${habit.name} logged successfully!`);
+      if (onToggleHabit) {
+        await onToggleHabit(habit);
+      } else {
+        const localDate = getLocalDateString();
+        const res = await habitApi.toggleHabit(habit.id, {
+          date: localDate,
+          is_completed: !wasDone,
+          action: !wasDone ? 'complete' : 'incomplete',
+        });
+        if (onHabitUpdated) onHabitUpdated();
       }
     } catch (e) {
       console.error('Failed to toggle habit:', e);
+    } finally {
+      setPendingHabitIds((prev) => {
+        const next = new Set(prev);
+        next.delete(habit.id);
+        return next;
+      });
     }
   };
 
@@ -170,8 +192,11 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onOpenQuranModa
                   )}
 
                   <button
+                    disabled={pendingHabitIds.has(habit.id)}
                     onClick={() => handleToggle(habit)}
                     className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                      pendingHabitIds.has(habit.id) ? 'opacity-70 cursor-wait' : ''
+                    } ${
                       isDone
                         ? 'bg-[#088ac1] text-white shadow-xs'
                         : 'border-2 border-slate-300 dark:border-slate-600 hover:border-[#1eb4eb]'

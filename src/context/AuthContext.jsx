@@ -26,7 +26,12 @@ const getStoredUser = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(getStoredUser);
   const [token, setToken] = useState(getStoredToken);
-  const [isLoading, setIsLoading] = useState(true);
+  // If we already have cached token and user, render instantly without blocking loading spinner
+  const [isLoading, setIsLoading] = useState(() => {
+    const initialToken = getStoredToken();
+    const initialUser = getStoredUser();
+    return Boolean(initialToken && !initialUser);
+  });
 
   const fetchCurrentUser = async () => {
     const currentToken = getStoredToken();

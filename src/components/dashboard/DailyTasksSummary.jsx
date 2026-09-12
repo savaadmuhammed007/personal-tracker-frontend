@@ -1,21 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, CheckSquare, Plus, ArrowRight } from 'lucide-react';
 import { taskApi } from '../../api/taskApi';
 import { useNotification } from '../../context/NotificationContext';
 
-export const DailyTasksSummary = ({ tasksList, onTaskUpdated, onOpenAddModal }) => {
+export const DailyTasksSummary = ({ tasksList, onTaskUpdated, onToggleTask, onOpenAddModal }) => {
   const { showToast } = useNotification();
+  const [pendingTaskIds, setPendingTaskIds] = useState(new Set());
 
   const handleToggle = async (task) => {
+    if (pendingTaskIds.has(task.id)) return;
+    setPendingTaskIds((prev) => new Set(prev).add(task.id));
+
+    const isCompleted = task.status === 'completed';
+    if (!isCompleted) {
+      showToast('Task Completed', `✓ ${task.title} finished!`);
+    }
+
     try {
-      const res = await taskApi.toggleTask(task.id);
-      if (onTaskUpdated) onTaskUpdated();
-      if (res.data.task.status === 'completed') {
-        showToast('Task Completed', `✓ ${task.title} finished!`);
+      if (onToggleTask) {
+        await onToggleTask(task);
+      } else {
+        const nextStatus = isCompleted ? 'pending' : 'completed';
+        await taskApi.toggleTask(task.id, {
+          status: nextStatus,
+          is_completed: nextStatus === 'completed',
+        });
+        if (onTaskUpdated) onTaskUpdated();
       }
     } catch (e) {
       console.error('Failed to toggle task:', e);
+    } finally {
+      setPendingTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
     }
   };
 

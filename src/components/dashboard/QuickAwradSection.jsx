@@ -2,17 +2,22 @@ import React from 'react';
 import { Plus, Minus, RotateCcw, Check, Sparkles } from 'lucide-react';
 import { awradApi } from '../../api/awradApi';
 import { useNotification } from '../../context/NotificationContext';
+import { getLocalDateString } from '../../utils/dateUtils';
 
-export const QuickAwradSection = ({ awradList, onAwradUpdated }) => {
+export const QuickAwradSection = ({ awradList, onAwradUpdated, onUpdateAwrad }) => {
   const { showToast, playChime, triggerHaptic } = useNotification();
 
   const handleIncrement = async (id, name, currentCount, targetCount) => {
     try {
       triggerHaptic(20);
       playChime('tap');
-      const res = await awradApi.increment(id, { delta: 1 });
-      if (onAwradUpdated) onAwradUpdated();
-      if (res.data.is_completed && currentCount + 1 === targetCount) {
+      if (onUpdateAwrad) {
+        await onUpdateAwrad(id, 1, currentCount, targetCount);
+      } else {
+        await awradApi.increment(id, { delta: 1, date: getLocalDateString() });
+        if (onAwradUpdated) onAwradUpdated();
+      }
+      if (currentCount + 1 === targetCount) {
         showToast('Target Reached', `Alhamdulillah! Completed ${targetCount}x ${name}`, 'success');
       }
     } catch (e) {
@@ -20,10 +25,14 @@ export const QuickAwradSection = ({ awradList, onAwradUpdated }) => {
     }
   };
 
-  const handleDecrement = async (id) => {
+  const handleDecrement = async (id, currentCount, targetCount) => {
     try {
-      await awradApi.increment(id, { delta: -1 });
-      if (onAwradUpdated) onAwradUpdated();
+      if (onUpdateAwrad) {
+        await onUpdateAwrad(id, -1, currentCount, targetCount);
+      } else {
+        await awradApi.increment(id, { delta: -1, date: getLocalDateString() });
+        if (onAwradUpdated) onAwradUpdated();
+      }
     } catch (e) {
       console.error('Failed to decrement awrad:', e);
     }
@@ -31,7 +40,7 @@ export const QuickAwradSection = ({ awradList, onAwradUpdated }) => {
 
   const handleReset = async (id, name) => {
     try {
-      await awradApi.reset(id);
+      await awradApi.reset(id, { date: getLocalDateString() });
       if (onAwradUpdated) onAwradUpdated();
       showToast('Counter Reset', `Reset counter for ${name}`, 'neutral');
     } catch (e) {

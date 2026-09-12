@@ -17,11 +17,29 @@ import { HabitFormModal } from '../components/modals/HabitFormModal';
 import { QuranLogModal } from '../components/modals/QuranLogModal';
 import { useNotification } from '../context/NotificationContext';
 import { Button } from '../components/common/UIComponents';
+import { getLocalDateString } from '../utils/dateUtils';
+
+const CACHE_HABITS_PAGE_KEY = 'cached_habits_page';
 
 export const HabitsPage = () => {
   const navigate = useNavigate();
-  const [habits, setHabits] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [habits, setHabits] = useState(() => {
+    try {
+      const cached = localStorage.getItem(CACHE_HABITS_PAGE_KEY);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = localStorage.getItem(CACHE_HABITS_PAGE_KEY);
+      return !cached || JSON.parse(cached).length === 0;
+    } catch {
+      return true;
+    }
+  });
+  const [pendingHabitIds, setPendingHabitIds] = useState(new Set());
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
@@ -29,11 +47,17 @@ export const HabitsPage = () => {
   const { showToast } = useNotification();
 
   const fetchHabits = useCallback(async () => {
-    setLoading(true);
     try {
-      const params = selectedCategory !== 'all' ? { category: selectedCategory } : {};
+      const localDate = getLocalDateString();
+      const params = { date: localDate };
+      if (selectedCategory !== 'all') params.category = selectedCategory;
+
       const res = await habitApi.getHabits(params);
-      setHabits(res.data || []);
+      const data = res.data || [];
+      setHabits(data);
+      try {
+        localStorage.setItem(CACHE_HABITS_PAGE_KEY, JSON.stringify(data));
+      } catch {}
     } catch (e) {
       console.error('Failed to load habits:', e);
     } finally {
@@ -46,14 +70,72 @@ export const HabitsPage = () => {
   }, [fetchHabits]);
 
   const handleToggle = async (habit) => {
+    if (pendingHabitIds.has(habit.id)) return;
+    setPendingHabitIds((prev) => new Set(prev).add(habit.id));
+
+    const localDate = getLocalDateString();
+    const isCurrentlyDone = Boolean(habit.today_completion);
+    const targetState = !isCurrentlyDone;
+
+    if (targetState) {
+      showToast('Habit Completed', `✓ ${habit.name} logged successfully!`);
+    }
+
+    // 1. Optimistic instant UI update
+    setHabits((prev) =>
+      prev.map((h) => {
+        if (h.id === habit.id) {
+          const newCompletion = targetState
+            ? {
+                id: h.today_completion?.id || `temp-${Date.now()}`,
+                date: localDate,
+                completed_at: new Date().toISOString(),
+              }
+            : null;
+          const newStreak = targetState
+            ? (h.current_streak || 0) + 1
+            : Math.max(0, (h.current_streak || 1) - 1);
+          return {
+            ...h,
+            today_completion: newCompletion,
+            current_streak: newStreak,
+          };
+        }
+        return h;
+      })
+    );
+
+    // 2. Network request with explicit targetState (idempotent)
     try {
-      const res = await habitApi.toggleHabit(habit.id);
-      fetchHabits();
-      if (res.data.is_completed) {
-        showToast('Habit Completed', `✓ ${habit.name} logged successfully!`);
+      const res = await habitApi.toggleHabit(habit.id, {
+        date: localDate,
+        is_completed: targetState,
+        action: targetState ? 'complete' : 'incomplete',
+      });
+      if (res.data?.completion !== undefined || res.data?.streaks) {
+        setHabits((prev) =>
+          prev.map((h) => {
+            if (h.id === habit.id) {
+              return {
+                ...h,
+                today_completion: res.data.is_completed ? res.data.completion : null,
+                current_streak: res.data.streaks?.current_streak ?? h.current_streak,
+                longest_streak: res.data.streaks?.longest_streak ?? h.longest_streak,
+              };
+            }
+            return h;
+          })
+        );
       }
     } catch (e) {
       console.error('Failed to toggle habit:', e);
+      fetchHabits();
+    } finally {
+      setPendingHabitIds((prev) => {
+        const next = new Set(prev);
+        next.delete(habit.id);
+        return next;
+      });
     }
   };
 
@@ -351,8 +433,11 @@ export const HabitsPage = () => {
                     )}
 
                     <button
+                      disabled={pendingHabitIds.has(habit.id)}
                       onClick={() => handleToggle(habit)}
                       className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
+                        pendingHabitIds.has(habit.id) ? 'opacity-70 cursor-wait' : ''
+                      } ${
                         isDone
                           ? 'bg-[#088ac1] hover:bg-[#1eb4eb] text-white shadow-picton-glow'
                           : 'border-2 border-slate-300 dark:border-slate-600 hover:border-[#1eb4eb] text-transparent hover:text-slate-400'

@@ -14,20 +14,23 @@ import { taskApi } from '../api/taskApi';
 import { TaskFormModal } from '../components/modals/TaskFormModal';
 import { useNotification } from '../context/NotificationContext';
 import { Button, Badge } from '../components/common/UIComponents';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export const TasksPage = () => {
   const [tasks, setTasks] = useState([]);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [pendingTaskIds, setPendingTaskIds] = useState(new Set());
+  const [activeFilter, setActiveFilter] = useState('today');
   const [activeCategory, setActiveCategory] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [loading, setLoading] = useState(true);
   const { showToast } = useNotification();
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
+      const localDate = getLocalDateString();
+      const params = { date: localDate };
       if (activeFilter !== 'all') params.filter = activeFilter;
       if (activeCategory !== 'all') params.category = activeCategory;
 
@@ -46,14 +49,37 @@ export const TasksPage = () => {
   }, [fetchTasks]);
 
   const handleToggle = async (task) => {
+    if (pendingTaskIds.has(task.id)) return;
+    setPendingTaskIds((prev) => new Set(prev).add(task.id));
+
+    const isCompleted = task.status === 'completed';
+    const nextStatus = isCompleted ? 'pending' : 'completed';
+
+    if (!isCompleted) {
+      showToast('Task Completed', `✓ Finished "${task.title}"`);
+    }
+
+    // 1. Optimistic update
+    setTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus, completed_at: nextStatus === 'completed' ? new Date().toISOString() : null } : t))
+    );
+
+    // 2. Network call with explicit status
     try {
-      const res = await taskApi.toggleTask(task.id);
-      fetchTasks();
-      if (res.data.task.status === 'completed') {
-        showToast('Task Completed', `✓ Finished "${task.title}"`);
-      }
+      await taskApi.toggleTask(task.id, {
+        status: nextStatus,
+        is_completed: nextStatus === 'completed',
+        action: nextStatus === 'completed' ? 'complete' : 'incomplete',
+      });
     } catch (e) {
       console.error('Failed to toggle task:', e);
+      fetchTasks();
+    } finally {
+      setPendingTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
     }
   };
 
@@ -189,8 +215,11 @@ export const TasksPage = () => {
                 {/* Checkbox + Title + Meta */}
                 <div className="flex items-start sm:items-center gap-3 min-w-0">
                   <button
+                    disabled={pendingTaskIds.has(task.id)}
                     onClick={() => handleToggle(task)}
                     className={`mt-0.5 sm:mt-0 w-6 h-6 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+                      pendingTaskIds.has(task.id) ? 'opacity-70 cursor-wait' : ''
+                    } ${
                       isCompleted
                         ? 'bg-[#088ac1] text-white shadow-sm'
                         : 'border-2 border-slate-300 dark:border-slate-600 hover:border-[#1eb4eb]'

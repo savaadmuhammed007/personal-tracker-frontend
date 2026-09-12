@@ -22,6 +22,7 @@ import { habitApi } from '../api/habitApi';
 import { QuranLogModal } from '../components/modals/QuranLogModal';
 import { useNotification } from '../context/NotificationContext';
 import { Button } from '../components/common/UIComponents';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export const QuranPage = () => {
   const { showToast } = useNotification();
@@ -38,7 +39,8 @@ export const QuranPage = () => {
   const fetchQuranData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await habitApi.getHabits({ category: 'quran' });
+      const localDate = getLocalDateString();
+      const res = await habitApi.getHabits({ category: 'quran', date: localDate });
       const habitsList = Array.isArray(res?.data) ? res.data : res?.data?.results || [];
       let habit = habitsList.find((h) => h.category === 'quran') || habitsList[0];
 
