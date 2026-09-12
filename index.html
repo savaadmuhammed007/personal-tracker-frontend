@@ -23,9 +23,25 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
+      // Self-healing: if an asset fails to load due to outdated PWA cache, purge cache and reload once
+      window.addEventListener('error', function(e) {
+        if (e && (e.target && e.target.tagName === 'SCRIPT' || (e.message && (e.message.includes('dynamically imported module') || e.message.includes('Loading chunk'))))) {
+          if ('caches' in window && !sessionStorage.getItem('sw_cache_recovered')) {
+            sessionStorage.setItem('sw_cache_recovered', '1');
+            caches.keys().then(function(keys) {
+              return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+            }).then(function() {
+              window.location.reload();
+            });
+          }
+        }
+      }, true);
+
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            reg.update();
+          }).catch(function() {});
         });
       }
     </script>

@@ -63,7 +63,7 @@ export const QuickAwradSection = ({ awradList, onAwradUpdated, onUpdateAwrad }) 
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {awradList.slice(0, 6).map((item) => {
+        {(Array.isArray(awradList) ? awradList : []).slice(0, 6).map((item) => {
           const isDone = item.is_completed;
           const pct = item.progress_percentage || 0;
 

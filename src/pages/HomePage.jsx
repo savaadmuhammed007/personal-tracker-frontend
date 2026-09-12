@@ -23,7 +23,9 @@ const CACHE_TASKS_KEY = 'cached_dashboard_tasks';
 const getCachedList = (key) => {
   try {
     const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : [];
+    if (!item) return [];
+    const parsed = JSON.parse(item);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -267,7 +269,7 @@ export const HomePage = () => {
       {/* 5. Daily Islamic Habits (Sunnah, Routines & Virtues) */}
       <div id="habits-section">
         <DailyHabitsSection
-          habitsList={habits}
+          habitsList={safeHabits}
           onHabitUpdated={fetchDashboardData}
           onToggleHabit={handleOptimisticToggleHabit}
           onOpenQuranModal={(habit) => setSelectedQuranHabit(habit)}
@@ -278,7 +280,7 @@ export const HomePage = () => {
       {/* 6. Daily Awrad & Digital Dhikr Tasbih */}
       <div id="awrad-section">
         <QuickAwradSection
-          awradList={awrad}
+          awradList={safeAwrad}
           onAwradUpdated={fetchDashboardData}
           onUpdateAwrad={handleOptimisticUpdateAwrad}
         />
@@ -287,7 +289,7 @@ export const HomePage = () => {
       {/* 7. Tasks Summary */}
       <div id="tasks-section">
         <DailyTasksSummary
-          tasksList={tasks}
+          tasksList={safeTasks}
           onTaskUpdated={fetchDashboardData}
           onToggleTask={handleOptimisticToggleTask}
           onOpenAddModal={() => setIsTaskModalOpen(true)}

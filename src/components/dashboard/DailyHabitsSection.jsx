@@ -7,7 +7,8 @@ import { getLocalDateString } from '../../utils/dateUtils';
 export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, onOpenQuranModal, onOpenAddModal }) => {
   const { showToast } = useNotification();
   const [pendingHabitIds, setPendingHabitIds] = useState(new Set());
-  const nonQuranHabits = (habitsList || []).filter((h) => h.category !== 'quran');
+  const safeHabits = Array.isArray(habitsList) ? habitsList : [];
+  const nonQuranHabits = safeHabits.filter((h) => h.category !== 'quran');
 
   // Convert JS Sunday(0)..Saturday(6) to 0=Mon..6=Sun
   const todayPyWeekday = (new Date().getDay() + 6) % 7;

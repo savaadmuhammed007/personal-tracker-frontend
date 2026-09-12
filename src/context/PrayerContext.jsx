@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { prayerApi } from '../api/prayerApi';
 import { settingsApi } from '../api/settingsApi';
 import { useAuth } from './AuthContext';
@@ -32,8 +32,11 @@ const getInitialPrayerData = () => {
       latitude: 21.4225,
       longitude: 39.8262,
       timezone: 'Asia/Riyadh',
-      method: 'Umm Al-Qura University, Makkah',
+    },
+    settings: {
+      calculation_method: 'Umm Al-Qura University, Makkah',
       asr_method: 'Standard',
+      method: 'Umm Al-Qura University, Makkah',
     },
   };
 };
@@ -43,18 +46,20 @@ export const PrayerProvider = ({ children }) => {
   const [data, setData] = useState(getInitialPrayerData);
   const [isLoading, setIsLoading] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const hasLoadedRef = useRef(Boolean(data.prayers && data.prayers.length > 0));
 
   const fetchTodayPrayers = useCallback(async (dateStr) => {
     if (!isAuthenticated) return;
     const targetDate = dateStr || getLocalDateString();
     // Only show blocking loader if no prayer data exists yet
-    if (!data.prayers || data.prayers.length === 0) {
+    if (!hasLoadedRef.current) {
       setIsLoading(true);
     }
     try {
       const res = await prayerApi.getToday(targetDate);
       if (res?.data) {
         setData(res.data);
+        hasLoadedRef.current = true;
         try {
           localStorage.setItem(PRAYER_CACHE_KEY, JSON.stringify(res.data));
         } catch {}
@@ -64,7 +69,7 @@ export const PrayerProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, data.prayers]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {
