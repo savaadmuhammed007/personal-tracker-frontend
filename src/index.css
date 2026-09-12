@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #1eb4eb;
+    --color-primary-dark: #076e9d;
+    --color-gold: #d97706;
+  }
+
+  body {
+    @apply font-sans transition-colors duration-200;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+}
+
+/* Safe Area Inset Support for Mobile Notch & Bottom Indicator */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-600;
+}
+
+/* Islamic Geometric Pattern Accent Overlay */
+.islamic-pattern-bg {
+  background-image: radial-gradient(rgba(30, 180, 235, 0.09) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.dark .islamic-pattern-bg {
+  background-image: radial-gradient(rgba(61, 195, 243, 0.1) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Glassmorphism Card Utilities */
+.glass-card {
+  @apply bg-white/80 dark:bg-islamic-card-dark/80 backdrop-blur-md border border-islamic-border-light/60 dark:border-islamic-border-dark/60 shadow-soft;
+}
+
+.glass-card-hover {
+  @apply transition-all duration-200 hover:shadow-soft-lg hover:-translate-y-0.5;
+}
+
+/* Digital Tasbih Tap Feedback */
+.tasbih-press-effect {
+  @apply active:scale-95 transition-transform duration-100;
+}
+
+/* Pulse Glow */
+.glow-emerald,
+.glow-picton {
+  box-shadow: 0 0 20px -3px rgba(30, 180, 235, 0.45);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px -3px rgba(245, 158, 11, 0.35);
+}
