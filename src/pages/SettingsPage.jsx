@@ -4,6 +4,7 @@ import {
   User,
   Compass,
   Bell,
+  BellRing,
   Moon,
   Sun,
   Download,
@@ -18,6 +19,9 @@ import {
   Sparkles,
   Plus,
   Minus,
+  Smartphone,
+  ShieldCheck,
+  X,
 } from 'lucide-react';
 import { settingsApi } from '../api/settingsApi';
 import { authApi } from '../api/authApi';
@@ -31,8 +35,151 @@ import { getHijriDate } from '../utils/hijri';
 export const SettingsPage = () => {
   const { user, refreshProfile } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { showToast } = useNotification();
+  const { showToast, playChime, triggerHaptic } = useNotification();
   const { detectLocationGPS, isDetectingLocation, refreshPrayers } = usePrayers();
+
+  // Browser Web Notification Permission State
+  const [notificationPermission, setNotificationPermission] = useState(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission;
+    }
+    return 'unsupported';
+  });
+
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.__deferredPwaPrompt || null;
+    }
+    return null;
+  });
+  const [isStandalone, setIsStandalone] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone ||
+      document.referrer.includes('android-app://')
+    );
+  });
+  const [isIOS] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const ua = window.navigator.userAgent.toLowerCase();
+    return /iphone|ipad|ipod/.test(ua) && !window.MSStream;
+  });
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
+
+  useEffect(() => {
+    const handlePromptAvailable = () => {
+      if (window.__deferredPwaPrompt) {
+        setDeferredPrompt(window.__deferredPwaPrompt);
+      }
+    };
+    const handleInstalled = () => {
+      setIsStandalone(true);
+      setDeferredPrompt(null);
+      showToast('App Installed', 'يومي is now installed and ready on your home screen!');
+    };
+
+    window.addEventListener('pwa-prompt-available', handlePromptAvailable);
+    window.addEventListener('pwa-installed', handleInstalled);
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.__deferredPwaPrompt = e;
+      setDeferredPrompt(e);
+    });
+    window.addEventListener('appinstalled', handleInstalled);
+
+    return () => {
+      window.removeEventListener('pwa-prompt-available', handlePromptAvailable);
+      window.removeEventListener('pwa-installed', handleInstalled);
+    };
+  }, [showToast]);
+
+  const handleEnableNotifications = async () => {
+    if (!('Notification' in window)) {
+      showToast('Unsupported', 'Web notifications are not supported on this browser.', 'error');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+
+      if (permission === 'granted') {
+        showToast('Notifications Active', 'Alhamdulillah! Prayer Adhan and Dhikr alerts are now enabled.');
+        playChime?.('complete');
+        triggerHaptic?.(50);
+
+        // Send a test/welcome notification
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          const reg = await navigator.serviceWorker.ready;
+          reg.showNotification('يومي | Notifications Active', {
+            body: 'You will receive timely prayer Adhan and Dhikr reminders on this device.',
+            icon: '/icons/crescent-star.svg',
+            badge: '/icons/crescent-star.svg',
+          });
+        } else {
+          new Notification('يومي | Notifications Active', {
+            body: 'You will receive timely prayer Adhan and Dhikr reminders on this device.',
+            icon: '/icons/crescent-star.svg',
+          });
+        }
+      } else if (permission === 'denied') {
+        showToast('Permission Blocked', 'Notifications were blocked in your browser settings.', 'error');
+      }
+    } catch (err) {
+      console.error('Notification permission error:', err);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    if (Notification.permission !== 'granted') return;
+    playChime?.('complete');
+    triggerHaptic?.(50);
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        const reg = await navigator.serviceWorker.ready;
+        reg.showNotification('يومي | Test Notification', {
+          body: 'Allahumma barik! Prayer Adhan & Dhikr notifications are working smoothly.',
+          icon: '/icons/crescent-star.svg',
+          badge: '/icons/crescent-star.svg',
+        });
+      } else {
+        new Notification('يومي | Test Notification', {
+          body: 'Allahumma barik! Prayer Adhan & Dhikr notifications are working smoothly.',
+          icon: '/icons/crescent-star.svg',
+        });
+      }
+      showToast('Test Sent', 'Check your device notification center.');
+    } catch {
+      showToast('Audio Tested', 'Chime sound was played.');
+    }
+  };
+
+  const handleInstallApp = async () => {
+    if (isStandalone) {
+      showToast('Already Installed', 'يومي is already installed and running as a standalone app.');
+      return;
+    }
+
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        setIsStandalone(true);
+        setDeferredPrompt(null);
+        window.__deferredPwaPrompt = null;
+        showToast('Installed!', 'يومي was successfully installed on your device.');
+      }
+    } else if (isIOS) {
+      setShowIOSGuide(true);
+    } else {
+      showToast(
+        'Install App',
+        'Click the install icon (⊕) in your browser address bar or menu to install.'
+      );
+    }
+  };
 
   const [displayName, setDisplayName] = useState('');
   const [city, setCity] = useState('Mecca');
@@ -497,15 +644,85 @@ export const SettingsPage = () => {
           </div>
         </div>
 
-        {/* 4. Notifications */}
-        <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-soft space-y-4">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b pb-3 border-islamic-border-light/60 dark:border-islamic-border-dark/60">
-            <Bell className="w-5 h-5 text-rose-500" />
-            Reminders & Push Notifications
-          </h3>
+        {/* 4. Reminders & Push Notifications */}
+        <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-soft space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 border-islamic-border-light/60 dark:border-islamic-border-dark/60">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Bell className="w-5 h-5 text-rose-500" />
+                Reminders & Push Notifications
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Enable browser-level alerts for Adhan and spiritual habit check-ins
+              </p>
+            </div>
 
-          <div className="space-y-3">
-            <label className="flex items-center justify-between cursor-pointer">
+            {/* Notification Status Pill */}
+            {notificationPermission === 'granted' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-300 self-start sm:self-auto">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                System Alerts Active
+              </span>
+            )}
+            {notificationPermission === 'default' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-xs font-bold text-amber-700 dark:text-amber-300 self-start sm:self-auto">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                Permission Needed
+              </span>
+            )}
+            {notificationPermission === 'denied' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-xs font-bold text-rose-700 dark:text-rose-300 self-start sm:self-auto">
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                Blocked in Browser
+              </span>
+            )}
+          </div>
+
+          {/* Enable Notifications Action Banner */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-islamic-subtle-light/70 to-slate-50/80 dark:from-islamic-subtle-dark/50 dark:to-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <BellRing className="w-4 h-4 text-[#088ac1] dark:text-[#3dc3f3]" />
+                <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white">
+                  Device Notification Permissions
+                </h4>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
+                {notificationPermission === 'granted'
+                  ? 'Browser notifications are authorized. You will receive prompt audio and visual alerts for upcoming prayers and adhkar.'
+                  : notificationPermission === 'denied'
+                  ? 'Notifications are blocked in your browser preferences. Please click the site icon in your address bar to set Notifications to "Allow".'
+                  : 'Grant notification permission so that daily Adhan, prayer times, and adhkar notifications can be scheduled even when the browser is in the background.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {notificationPermission === 'granted' ? (
+                <button
+                  type="button"
+                  onClick={handleTestNotification}
+                  className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95"
+                >
+                  <BellRing className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Send Test Alert</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleEnableNotifications}
+                  disabled={notificationPermission === 'unsupported'}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#088ac1] to-[#1eb4eb] hover:from-[#076e9d] hover:to-[#088ac1] text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-sky-500/20 active:scale-95 disabled:opacity-50"
+                >
+                  <BellRing className="w-4 h-4" />
+                  <span>Enable Notifications</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Granular Toggles */}
+          <div className="space-y-3 pt-1">
+            <label className="flex items-center justify-between cursor-pointer p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Prayer time Adhan notifications
               </span>
@@ -513,11 +730,11 @@ export const SettingsPage = () => {
                 type="checkbox"
                 checked={prayerNotifs}
                 onChange={(e) => setPrayerNotifs(e.target.checked)}
-                className="w-4 h-4 text-islamic-primary-600 rounded focus:ring-islamic-primary-500"
+                className="w-4 h-4 text-islamic-primary-600 rounded focus:ring-islamic-primary-500 cursor-pointer"
               />
             </label>
 
-            <label className="flex items-center justify-between cursor-pointer">
+            <label className="flex items-center justify-between cursor-pointer p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Morning & Evening Adhkar reminders
               </span>
@@ -525,11 +742,11 @@ export const SettingsPage = () => {
                 type="checkbox"
                 checked={habitNotifs}
                 onChange={(e) => setHabitNotifs(e.target.checked)}
-                className="w-4 h-4 text-islamic-primary-600 rounded focus:ring-islamic-primary-500"
+                className="w-4 h-4 text-islamic-primary-600 rounded focus:ring-islamic-primary-500 cursor-pointer"
               />
             </label>
 
-            <label className="flex items-center justify-between cursor-pointer">
+            <label className="flex items-center justify-between cursor-pointer p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Task deadlines & daily reflection alerts
               </span>
@@ -537,9 +754,65 @@ export const SettingsPage = () => {
                 type="checkbox"
                 checked={taskNotifs}
                 onChange={(e) => setTaskNotifs(e.target.checked)}
-                className="w-4 h-4 text-islamic-primary-600 rounded focus:ring-islamic-primary-500"
+                className="w-4 h-4 text-islamic-primary-600 rounded focus:ring-islamic-primary-500 cursor-pointer"
               />
             </label>
+          </div>
+        </div>
+
+        {/* 5. Install App (PWA) */}
+        <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-soft space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 border-islamic-border-light/60 dark:border-islamic-border-dark/60">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-emerald-500" />
+                Install يومي App (PWA)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Install as a standalone native app on your phone, tablet, or desktop
+              </p>
+            </div>
+
+            {isStandalone && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-300 self-start sm:self-auto">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                App Installed
+              </span>
+            )}
+          </div>
+
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#f0faff] to-slate-50 dark:from-[#081f2c]/70 dark:to-[#071722]/70 border border-[#bce8fb]/80 dark:border-[#0f4d6b]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#088ac1] dark:text-[#3dc3f3]" />
+                {isStandalone
+                  ? 'Running in Native Standalone Mode'
+                  : 'Fast, Offline-Ready & Distraction-Free'}
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-lg">
+                {isStandalone
+                  ? 'Alhamdulillah! You are using the installed application with local database caching, instant home-screen launching, and offline capability.'
+                  : 'Add يومي to your home screen for one-tap access, zero address bar distractions, and offline caching for your Quran recitation & daily Adhkar.'}
+              </p>
+            </div>
+
+            <div className="shrink-0">
+              {isStandalone ? (
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Active on Device</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleInstallApp}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-600/20 active:scale-95"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{isIOS ? 'Install on iPhone / iPad' : 'Install App'}</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -592,6 +865,66 @@ export const SettingsPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* iOS Add to Home Screen Instructions Modal */}
+      {showIOSGuide && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-fade-in"
+            onClick={() => setShowIOSGuide(false)}
+          />
+          <div className="relative z-10 w-full max-w-sm bg-white dark:bg-[#081a26] border border-slate-200 dark:border-[#0f3b54] rounded-3xl shadow-2xl p-6 animate-slide-up space-y-4">
+            <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-800">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-emerald-500" />
+                Install on iOS / Safari
+              </h4>
+              <button
+                type="button"
+                onClick={() => setShowIOSGuide(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <ol className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
+              <li className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-[#e1f3fd] dark:bg-[#0a354c] text-[#076e9d] dark:text-[#3dc3f3] flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
+                  1
+                </span>
+                <span>
+                  Tap the <strong className="text-slate-900 dark:text-white">Share button</strong> (square with arrow up) at the bottom toolbar of Safari.
+                </span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-[#e1f3fd] dark:bg-[#0a354c] text-[#076e9d] dark:text-[#3dc3f3] flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
+                  2
+                </span>
+                <span>
+                  Scroll down the share menu and tap <strong className="text-slate-900 dark:text-white">Add to Home Screen</strong> (+).
+                </span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-[#e1f3fd] dark:bg-[#0a354c] text-[#076e9d] dark:text-[#3dc3f3] flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
+                  3
+                </span>
+                <span>
+                  Tap <strong className="text-slate-900 dark:text-white">Add</strong> in the top-right corner to finish.
+                </span>
+              </li>
+            </ol>
+
+            <button
+              type="button"
+              onClick={() => setShowIOSGuide(false)}
+              className="w-full py-2.5 rounded-xl bg-[#088ac1] text-white font-bold text-xs hover:bg-[#076e9d] transition-colors cursor-pointer"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

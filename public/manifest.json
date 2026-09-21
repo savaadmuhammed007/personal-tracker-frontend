@@ -1,11 +1,11 @@
 {
-  "name": "Islamic Daily OS",
-  "short_name": "IslamicHabits",
+  "name": "يومي — Islamic Habit Tracker",
+  "short_name": "يومي",
   "description": "Personal Islamic Daily Operating System — Salah, Awrad, Qur'an & Habits",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#047857",
-  "theme_color": "#047857",
+  "background_color": "#060e14",
+  "theme_color": "#088ac1",
   "orientation": "portrait",
   "icons": [
     {
