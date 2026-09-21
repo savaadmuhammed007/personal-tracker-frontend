@@ -1,7 +1,18 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-const API_URL = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL.replace(/\/$/, '')}/api`;
+// Determine API base URL
+// In development, using relative '/api' takes advantage of Vite's proxy,
+// working seamlessly on both localhost and mobile devices on local WiFi.
+// In production, use VITE_API_URL or fallback to Render backend.
+const getBaseUrl = () => {
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+  const prodUrl = import.meta.env.VITE_API_URL || 'https://personal-tracker-backend-mr9z.onrender.com';
+  return prodUrl.endsWith('/api') ? prodUrl : `${prodUrl.replace(/\/$/, '')}/api`;
+};
+
+const API_URL = getBaseUrl();
 
 const api = axios.create({
   baseURL: API_URL,
@@ -27,7 +38,10 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const url = originalRequest?.url || '';
+    const isAuthRequest = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
       originalRequest._retry = true;
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {

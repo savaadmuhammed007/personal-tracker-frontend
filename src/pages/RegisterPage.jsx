@@ -36,10 +36,17 @@ export const RegisterPage = () => {
       console.error('Registration error:', err);
       const errData = err.response?.data;
       if (errData && typeof errData === 'object') {
-        const firstKey = Object.keys(errData)[0];
-        setError(`${firstKey}: ${errData[firstKey]}`);
+        const messages = [];
+        for (const [key, val] of Object.entries(errData)) {
+          const cleanKey = key.replace('_', ' ');
+          const text = Array.isArray(val) ? val.join(' ') : String(val);
+          messages.push(`${cleanKey}: ${text}`);
+        }
+        setError(messages.join(' | ') || 'Please check your registration details.');
+      } else if (err.message === 'Network Error') {
+        setError('Unable to connect to the server. Please check your connection.');
       } else {
-        setError('Failed to create account. Please check your details.');
+        setError(err.response?.data?.detail || 'Failed to create account. Please check your details.');
       }
     } finally {
       setSubmitting(false);

@@ -24,7 +24,16 @@ export const LoginPage = () => {
       navigate('/');
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.response?.data?.detail || 'Invalid username or password. Please try again.');
+      const errData = err.response?.data;
+      if (errData?.detail) {
+        setError(errData.detail);
+      } else if (errData?.non_field_errors) {
+        setError(Array.isArray(errData.non_field_errors) ? errData.non_field_errors.join(' ') : String(errData.non_field_errors));
+      } else if (err.message === 'Network Error') {
+        setError('Cannot connect to server. Please check your network or server status.');
+      } else {
+        setError('Invalid username, email, or password. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
