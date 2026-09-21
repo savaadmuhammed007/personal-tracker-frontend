@@ -3,6 +3,7 @@ import { Modal, Button } from '../common/UIComponents';
 import { TimePickerField } from '../common/TimePickerField';
 import { taskApi } from '../../api/taskApi';
 import { useNotification } from '../../context/NotificationContext';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
   const { showToast } = useNotification();
@@ -10,7 +11,7 @@ export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('medium');
   const [category, setCategory] = useState('Personal');
-  const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dueDate, setDueDate] = useState(getLocalDateString());
   const [dueTime, setDueTime] = useState('06:00 PM');
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,7 +21,7 @@ export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
       setDescription(task?.description || '');
       setPriority(task?.priority || 'medium');
       setCategory(task?.category || 'Personal');
-      setDueDate(task?.due_date || new Date().toISOString().split('T')[0]);
+      setDueDate(task?.due_date || getLocalDateString());
       setDueTime(task?.due_time || '06:00 PM');
     }
   }, [isOpen, task]);

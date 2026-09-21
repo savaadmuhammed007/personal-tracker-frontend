@@ -83,6 +83,11 @@ export const HomePage = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Whenever prayersCompleted changes, trigger timeline refresh so logged prayers appear immediately
+  useEffect(() => {
+    setTimelineRefresh((prev) => prev + 1);
+  }, [prayersCompleted]);
+
   // Optimistic habit toggle: provides 0ms instant checkmark & streak update
   const handleOptimisticToggleHabit = async (habit) => {
     const localDate = getLocalDateString();
@@ -297,7 +302,7 @@ export const HomePage = () => {
       </div>
 
       {/* 8. Today's Chronological Activity Timeline */}
-      <ChronologicalTimelineMini refreshTrigger={timelineRefresh} />
+      <ChronologicalTimelineMini refreshTrigger={timelineRefresh} date={getLocalDateString()} />
 
       {/* Modals */}
       {selectedQuranHabit && (

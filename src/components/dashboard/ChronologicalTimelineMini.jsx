@@ -1,25 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, CheckCircle2, Repeat, Sun, CheckSquare, Sparkles } from 'lucide-react';
 import { timelineApi } from '../../api/timelineApi';
+import { getLocalDateString } from '../../utils/dateUtils';
 
-export const ChronologicalTimelineMini = ({ refreshTrigger }) => {
+export const ChronologicalTimelineMini = ({ refreshTrigger, date }) => {
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchTimeline = async () => {
       try {
-        const res = await timelineApi.getTimeline();
-        const list = Array.isArray(res.data?.timeline) ? res.data.timeline : Array.isArray(res.data) ? res.data : [];
-        setTimeline(list);
+        const targetDate = date || getLocalDateString();
+        const res = await timelineApi.getTimeline(targetDate);
+        if (isMounted) {
+          const list = Array.isArray(res.data?.timeline) ? res.data.timeline : Array.isArray(res.data) ? res.data : [];
+          setTimeline(list);
+        }
       } catch (e) {
         console.error('Failed to load timeline:', e);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     fetchTimeline();
-  }, [refreshTrigger]);
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshTrigger, date]);
 
   const typeIcons = {
     prayer: Sun,

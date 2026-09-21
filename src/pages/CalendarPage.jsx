@@ -13,13 +13,14 @@ import {
 } from 'lucide-react';
 import { calendarApi } from '../api/calendarApi';
 import { ProgressRing } from '../components/common/ProgressRing';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export const CalendarPage = () => {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
   const [monthData, setMonthData] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(today.toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString());
   const [dayDetails, setDayDetails] = useState(null);
   const [loadingMonth, setLoadingMonth] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);
