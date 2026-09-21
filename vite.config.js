@@ -9,7 +9,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'https://personal-tracker-backend-mr9z.onrender.com',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: false,
       }
