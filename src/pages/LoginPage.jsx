@@ -1,18 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, User, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Lock, User, Sparkles, ArrowRight, CheckCircle2, Server, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { Button } from '../components/common/UIComponents';
+import { checkBackendHealth, API_URL } from '../api/client';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [serverStatus, setServerStatus] = useState({ checking: true, ok: false, target: API_URL, latency: null });
   const { login, demoLogin } = useAuth();
   const { showToast } = useNotification();
   const navigate = useNavigate();
+
+  const pingServer = async () => {
+    setServerStatus((prev) => ({ ...prev, checking: true }));
+    const result = await checkBackendHealth();
+    setServerStatus({
+      checking: false,
+      ok: result.ok,
+      target: result.target,
+      latency: result.latency,
+      error: result.error,
+    });
+  };
+
+  useEffect(() => {
+    pingServer();
+  }, []);
+
+  const toggleBackendTarget = (targetType) => {
+    localStorage.setItem('active_backend_target', targetType);
+    window.location.reload();
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -78,6 +101,33 @@ export const LoginPage = () => {
               {error}
             </div>
           )}
+
+          {/* Server Connection Status Banner */}
+          <div className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-xs">
+            <div className="flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${serverStatus.checking ? 'bg-amber-400 animate-pulse' : serverStatus.ok ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50' : 'bg-rose-500 animate-ping'}`} />
+              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
+                {serverStatus.checking ? 'Checking backend...' : serverStatus.ok ? `Backend Connected (${serverStatus.latency}ms)` : 'Backend Unreachable'}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={pingServer}
+                title="Refresh connection status"
+                className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${serverStatus.checking ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleBackendTarget(serverStatus.target.includes('onrender') ? 'local' : 'cloud')}
+                className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+              >
+                {serverStatus.target.includes('onrender') ? 'Switch to Local' : 'Switch to Cloud'}
+              </button>
+            </div>
+          </div>
 
           {/* Quick Demo Login Option */}
           <div className="p-4 rounded-2xl bg-[#e1f3fd]/70 dark:bg-[#0f4d6b]/30 border border-[#bce8fb] dark:border-[#0b5d81]/60 text-left">
