@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   MapPin,
+  Calendar,
   Compass,
   Navigation,
   Search,
