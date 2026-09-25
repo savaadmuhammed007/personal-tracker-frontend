@@ -119,13 +119,15 @@ export const LoginPage = () => {
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${serverStatus.checking ? 'animate-spin' : ''}`} />
               </button>
-              <button
-                type="button"
-                onClick={() => toggleBackendTarget(serverStatus.target.includes('onrender') ? 'local' : 'cloud')}
-                className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-              >
-                {serverStatus.target.includes('onrender') ? 'Switch to Local' : 'Switch to Cloud'}
-              </button>
+              {import.meta.env.DEV && (
+                <button
+                  type="button"
+                  onClick={() => toggleBackendTarget(serverStatus.target.includes('onrender') ? 'local' : 'cloud')}
+                  className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                >
+                  {serverStatus.target.includes('onrender') ? 'Switch to Local' : 'Switch to Cloud'}
+                </button>
+              )}
             </div>
           </div>
 

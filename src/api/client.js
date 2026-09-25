@@ -9,7 +9,7 @@ export const getActiveBackendUrl = () => {
   if (saved === 'cloud') {
     return 'https://personal-tracker-backend-mr9z.onrender.com/api';
   }
-  if (saved === 'local') {
+  if (import.meta.env.DEV && saved === 'local') {
     return 'http://127.0.0.1:8000/api';
   }
   if (import.meta.env.DEV) {
