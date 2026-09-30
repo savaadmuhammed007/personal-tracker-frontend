@@ -9,9 +9,14 @@ import {
   Edit2,
   Trash2,
   Filter,
+  Repeat,
+  Sparkles,
+  ArrowUpRight,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { taskApi } from '../api/taskApi';
 import { TaskFormModal } from '../components/modals/TaskFormModal';
+import { AddDhikrTaskModal } from '../components/modals/AddDhikrTaskModal';
 import { useNotification } from '../context/NotificationContext';
 import { Button, Badge } from '../components/common/UIComponents';
 import { getLocalDateString } from '../utils/dateUtils';
@@ -23,6 +28,7 @@ export const TasksPage = () => {
   const [activeFilter, setActiveFilter] = useState('today');
   const [activeCategory, setActiveCategory] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDhikrModalOpen, setIsDhikrModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const { showToast } = useNotification();
 
@@ -111,20 +117,31 @@ export const TasksPage = () => {
             Task Management & Actions
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Organize personal, Islamic, study, and charity milestones with due dates
+            Organize personal, Islamic, Dhikr milestones, study, and charity tasks with due dates
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          icon={Plus}
-          onClick={() => {
-            setEditingTask(null);
-            setIsModalOpen(true);
-          }}
-        >
-          Add Task
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="secondary"
+            icon={Repeat}
+            onClick={() => setIsDhikrModalOpen(true)}
+            className="border-[#088ac1]/40 text-[#088ac1] dark:text-[#3dc3f3] hover:bg-[#088ac1]/10"
+          >
+            + Add Dhikr Task
+          </Button>
+
+          <Button
+            variant="primary"
+            icon={Plus}
+            onClick={() => {
+              setEditingTask(null);
+              setIsModalOpen(true);
+            }}
+          >
+            Add Task
+          </Button>
+        </div>
       </div>
 
       {/* Filter Tabs */}
@@ -159,6 +176,7 @@ export const TasksPage = () => {
             className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-700 dark:text-slate-300"
           >
             <option value="all">All Categories</option>
+            <option value="Dhikr">📿 Dhikr & Awrad</option>
             <option value="Islamic">Islamic</option>
             <option value="Personal">Personal</option>
             <option value="Work">Work / Study</option>
@@ -174,23 +192,33 @@ export const TasksPage = () => {
       ) : tasks.length === 0 ? (
         <div className="py-16 text-center text-sm text-slate-400 bg-islamic-subtle-light/40 dark:bg-islamic-subtle-dark/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
           <p className="font-semibold text-slate-600 dark:text-slate-300">No tasks in this view.</p>
-          <p className="text-xs text-slate-400 mt-1">Keep yourself organized with clear goals.</p>
-          <Button
-            variant="primary"
-            size="sm"
-            className="mt-4"
-            onClick={() => {
-              setEditingTask(null);
-              setIsModalOpen(true);
-            }}
-          >
-            + Create New Task
-          </Button>
+          <p className="text-xs text-slate-400 mt-1">Keep yourself organized with clear goals and Dhikr targets.</p>
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={Repeat}
+              onClick={() => setIsDhikrModalOpen(true)}
+            >
+              + Add Dhikr Task (e.g. 2000x)
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setEditingTask(null);
+                setIsModalOpen(true);
+              }}
+            >
+              + Create New Task
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
           {tasks.map((task) => {
             const isCompleted = task.status === 'completed';
+            const isDhikrTask = (task.category || '').toLowerCase() === 'dhikr';
             let compTime = null;
             if (task.completed_at) {
               try {
@@ -207,6 +235,8 @@ export const TasksPage = () => {
                 className={`p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                   isCompleted
                     ? 'bg-slate-50/60 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 opacity-60'
+                    : isDhikrTask
+                    ? 'bg-gradient-to-r from-[#088ac1]/10 via-[#1eb4eb]/5 to-white dark:to-islamic-card-dark border-[#3dc3f3]/40 shadow-soft'
                     : task.is_overdue
                     ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-300 dark:border-rose-900/60'
                     : 'glass-card border-islamic-border-light dark:border-islamic-border-dark hover:shadow-soft'
@@ -222,6 +252,8 @@ export const TasksPage = () => {
                     } ${
                       isCompleted
                         ? 'bg-[#088ac1] text-white shadow-sm'
+                        : isDhikrTask
+                        ? 'border-2 border-[#1eb4eb] hover:bg-[#1eb4eb]/20'
                         : 'border-2 border-slate-300 dark:border-slate-600 hover:border-[#1eb4eb]'
                     }`}
                   >
@@ -229,15 +261,23 @@ export const TasksPage = () => {
                   </button>
 
                   <div className="min-w-0">
-                    <p
-                      className={`text-sm font-bold ${
-                        isCompleted
-                          ? 'line-through text-slate-400 dark:text-slate-500'
-                          : 'text-slate-900 dark:text-white'
-                      }`}
-                    >
-                      {task.title}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p
+                        className={`text-sm font-bold ${
+                          isCompleted
+                            ? 'line-through text-slate-400 dark:text-slate-500'
+                            : 'text-slate-900 dark:text-white'
+                        }`}
+                      >
+                        {task.title}
+                      </p>
+
+                      {isDhikrTask && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#bce8fb]/70 dark:bg-[#0f4d6b] text-[#076e9d] dark:text-[#81d7f8] border border-[#81d7f8]/50">
+                          <Repeat className="w-3 h-3" /> Dhikr
+                        </span>
+                      )}
+                    </div>
 
                     {task.description && (
                       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">
@@ -269,6 +309,17 @@ export const TasksPage = () => {
                 {/* Badges & Actions */}
                 <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800/60 shrink-0">
                   <div className="flex items-center gap-2">
+                    {isDhikrTask && (
+                      <Link
+                        to="/awrad"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-xl bg-[#088ac1]/15 text-[#088ac1] dark:text-[#3dc3f3] hover:bg-[#088ac1]/25 transition-colors border border-[#3dc3f3]/30"
+                        title="Open in Digital Tasbih counter"
+                      >
+                        <span>Open in Tasbih</span>
+                        <ArrowUpRight className="w-3 h-3" />
+                      </Link>
+                    )}
+
                     <Badge variant={priorityBadgeVariant[task.priority] || 'default'}>
                       {task.priority.toUpperCase()}
                     </Badge>
@@ -305,6 +356,7 @@ export const TasksPage = () => {
         </div>
       )}
 
+      {/* Standard Task Modal */}
       <TaskFormModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -313,6 +365,14 @@ export const TasksPage = () => {
         }}
         task={editingTask}
         onSaved={fetchTasks}
+      />
+
+      {/* Dedicated Dhikr Task Modal */}
+      <AddDhikrTaskModal
+        isOpen={isDhikrModalOpen}
+        onClose={() => setIsDhikrModalOpen(false)}
+        initialTargetCount={2000}
+        onTaskCreated={fetchTasks}
       />
     </div>
   );

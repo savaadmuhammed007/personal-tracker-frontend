@@ -10,18 +10,24 @@ import {
   VolumeX,
   Smartphone,
   Trash2,
+  CheckSquare,
+  ListTodo,
 } from 'lucide-react';
 import { awradApi } from '../api/awradApi';
 import { AddAwradModal } from '../components/modals/AddAwradModal';
+import { AddDhikrTaskModal } from '../components/modals/AddDhikrTaskModal';
 import { useNotification } from '../context/NotificationContext';
 import { Button, Badge } from '../components/common/UIComponents';
 import { ProgressRing } from '../components/common/ProgressRing';
 import { getLocalDateString } from '../utils/dateUtils';
+import { Link } from 'react-router-dom';
 
 export const AwradPage = () => {
   const [awradList, setAwradList] = useState([]);
   const [activeAwrad, setActiveAwrad] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isDhikrTaskModalOpen, setIsDhikrTaskModalOpen] = useState(false);
+  const [selectedTaskDhikr, setSelectedTaskDhikr] = useState(null);
   const [soundActive, setSoundActive] = useState(true);
   const [stepSize, setStepSize] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -115,6 +121,11 @@ export const AwradPage = () => {
     }
   };
 
+  const openDhikrTaskModalFor = (dhikr = null) => {
+    setSelectedTaskDhikr(dhikr);
+    setIsDhikrTaskModalOpen(true);
+  };
+
   const activePct = activeAwrad ? activeAwrad.progress_percentage || 0 : 0;
 
   return (
@@ -127,17 +138,28 @@ export const AwradPage = () => {
             Digital Tasbih & Daily Awrad
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Count remembrance with target tracking, audio feedback, and persistent logs
+            Count remembrance with target tracking, custom milestone tasks, and persistent logs
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          icon={Plus}
-          onClick={() => setIsAddModalOpen(true)}
-        >
-          Create Custom Dhikr
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="secondary"
+            icon={CheckSquare}
+            onClick={() => openDhikrTaskModalFor(null)}
+            className="border-[#088ac1]/40 text-[#088ac1] dark:text-[#3dc3f3] hover:bg-[#088ac1]/10"
+          >
+            + Add Dhikr Task
+          </Button>
+
+          <Button
+            variant="primary"
+            icon={Plus}
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            Create Custom Dhikr
+          </Button>
+        </div>
       </div>
 
       {/* Main Focus: Digital Tasbih Counter Studio */}
@@ -146,7 +168,7 @@ export const AwradPage = () => {
           {/* Subtle background glow */}
           <div className="absolute top-0 w-full h-full bg-gradient-to-b from-islamic-primary-500/5 to-transparent pointer-events-none" />
 
-          {/* Top Controls: Sound toggle, Step selector, Reset */}
+          {/* Top Controls: Sound toggle, Step selector, Reset, Add as Task */}
           <div className="w-full flex items-center justify-between max-w-md mb-4 sm:mb-6 z-10 gap-2">
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
               {[1, 10, 33].map((step) => (
@@ -165,6 +187,15 @@ export const AwradPage = () => {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
+              <button
+                onClick={() => openDhikrTaskModalFor(activeAwrad)}
+                className="px-2.5 py-1.5 rounded-xl border border-[#088ac1]/30 bg-[#088ac1]/10 text-[#088ac1] dark:text-[#3dc3f3] hover:bg-[#088ac1]/20 transition-colors text-xs font-bold flex items-center gap-1"
+                title="Create a scheduled task for this Dhikr"
+              >
+                <CheckSquare className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Set as Task</span>
+              </button>
+
               <button
                 onClick={() => setSoundActive((s) => !s)}
                 className="p-1.5 sm:p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-islamic-card-dark text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -213,7 +244,7 @@ export const AwradPage = () => {
             >
               <button
                 onClick={handleTap}
-                className="w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-gradient-to-br from-[#088ac1] to-[#0a3147] text-white shadow-picton-glow active:scale-95 transition-transform duration-100 flex flex-col items-center justify-center select-none border-4 border-[#3dc3f3]/40"
+                className="w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-gradient-to-br from-[#088ac1] to-[#0a3147] text-white shadow-picton-glow active:scale-95 transition-transform duration-100 flex flex-col items-center justify-center select-none border-4 border-[#3dc3f3]/40 cursor-pointer"
               >
                 <span className="text-3xl sm:text-4xl md:text-5xl font-black font-mono tracking-tight">
                   {activeAwrad.today_count}
@@ -229,7 +260,7 @@ export const AwradPage = () => {
           </div>
 
           {/* Target & Status Footer */}
-          <div className="mt-3 sm:mt-4 z-10 flex items-center gap-3">
+          <div className="mt-3 sm:mt-4 z-10 flex flex-wrap items-center justify-center gap-3">
             {activeAwrad.is_completed ? (
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#bce8fb]/60 dark:bg-[#0f4d6b]/80 text-[#076e9d] dark:text-[#81d7f8] font-bold text-xs sm:text-sm border border-[#81d7f8]/40 dark:border-[#0b5d81]">
                 <Check className="w-4 h-4 stroke-[3]" /> Target Reached (100%)
@@ -239,15 +270,31 @@ export const AwradPage = () => {
                 {activeAwrad.target_count - activeAwrad.today_count} counts remaining to reach target
               </span>
             )}
+
+            <button
+              onClick={() => openDhikrTaskModalFor(activeAwrad)}
+              className="text-xs font-bold text-[#088ac1] dark:text-[#3dc3f3] hover:underline flex items-center gap-1"
+            >
+              <CheckSquare className="w-3.5 h-3.5" /> Schedule 2000+ Dhikr Task
+            </button>
           </div>
         </div>
       )}
 
       {/* Grid of all Dhikr counters */}
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-          All Daily Awrad & Dhikr Collection
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+            All Daily Awrad & Dhikr Collection
+          </h3>
+
+          <Link
+            to="/tasks"
+            className="text-xs font-bold text-[#088ac1] dark:text-[#3dc3f3] hover:underline flex items-center gap-1"
+          >
+            <ListTodo className="w-3.5 h-3.5" /> View Active Dhikr Tasks
+          </Link>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {awradList.map((item) => {
@@ -278,6 +325,18 @@ export const AwradPage = () => {
                           <Check className="w-3 h-3 stroke-[3]" /> Done
                         </span>
                       )}
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDhikrTaskModalFor(item);
+                        }}
+                        className="p-1 rounded-lg text-slate-400 hover:text-[#088ac1] dark:hover:text-[#3dc3f3] transition-colors"
+                        title="Add as a Dhikr task"
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
+                      </button>
+
                       {item.category === 'custom' && (
                         <button
                           onClick={(e) => {
@@ -329,10 +388,26 @@ export const AwradPage = () => {
         </div>
       </div>
 
+      {/* Modal for creating custom Dhikr counter */}
       <AddAwradModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSaved={fetchAwrad}
+      />
+
+      {/* Modal for creating custom Dhikr task (e.g. 2,000 counts) */}
+      <AddDhikrTaskModal
+        isOpen={isDhikrTaskModalOpen}
+        onClose={() => {
+          setIsDhikrTaskModalOpen(false);
+          setSelectedTaskDhikr(null);
+        }}
+        initialDhikrName={selectedTaskDhikr?.name || ''}
+        initialArabicText={selectedTaskDhikr?.arabic_text || ''}
+        initialTargetCount={selectedTaskDhikr?.target_count || 2000}
+        onTaskCreated={() => {
+          fetchAwrad();
+        }}
       />
     </div>
   );

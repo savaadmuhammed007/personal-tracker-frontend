@@ -132,9 +132,15 @@ export const DailyTasksSummary = ({ tasksList, onTaskUpdated, onToggleTask, onOp
                   >
                     {task.priority}
                   </span>
-                  <span className="text-[11px] text-slate-400 hidden sm:inline">
-                    {task.category}
-                  </span>
+                  {(task.category || '').toLowerCase() === 'dhikr' ? (
+                    <span className="text-[10px] font-extrabold text-[#088ac1] dark:text-[#3dc3f3] px-1.5 py-0.5 rounded-md bg-[#088ac1]/15 border border-[#3dc3f3]/30 hidden sm:inline">
+                      📿 Dhikr
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 hidden sm:inline">
+                      {task.category}
+                    </span>
+                  )}
                 </div>
               </div>
             );
