@@ -101,7 +101,7 @@ export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               Category
@@ -150,7 +150,7 @@ export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
                   key={cnt}
                   type="button"
                   onClick={() => setDhikrPresetCount(cnt)}
-                  className="px-2 py-1 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 border border-[#3dc3f3]/40 text-slate-800 dark:text-slate-200 hover:bg-[#088ac1] hover:text-white transition-colors"
+                  className="px-2 py-1 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 border border-[#3dc3f3]/40 text-slate-800 dark:text-slate-200 hover:bg-[#088ac1] hover:text-white transition-colors cursor-pointer"
                 >
                   {cnt.toLocaleString()}
                 </button>
@@ -159,7 +159,7 @@ export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               Due Date
@@ -180,11 +180,11 @@ export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
+          <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={submitting}>
+          <Button type="submit" variant="primary" disabled={submitting} className="w-full sm:w-auto">
             {submitting ? 'Saving...' : task?.id ? 'Update Task' : 'Create Task'}
           </Button>
         </div>

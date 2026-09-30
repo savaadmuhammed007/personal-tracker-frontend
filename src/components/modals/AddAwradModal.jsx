@@ -110,7 +110,7 @@ export const AddAwradModal = ({ isOpen, onClose, onSaved }) => {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               Target Count (e.g. 100, 2000)
@@ -178,11 +178,11 @@ export const AddAwradModal = ({ isOpen, onClose, onSaved }) => {
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
+          <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={submitting}>
+          <Button type="submit" variant="primary" disabled={submitting} className="w-full sm:w-auto">
             {submitting ? 'Creating...' : 'Create Dhikr Counter'}
           </Button>
         </div>

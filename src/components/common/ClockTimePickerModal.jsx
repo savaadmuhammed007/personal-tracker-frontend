@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Clock, Check, X } from 'lucide-react';
+import { Clock, Check, X, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
+
+const TIME_PRESETS = [
+  { label: 'Fajr / Morning', time: '05:00 AM' },
+  { label: 'Duha / Forenoon', time: '08:30 AM' },
+  { label: 'Dhuhr / Midday', time: '01:00 PM' },
+  { label: 'Asr / Afternoon', time: '04:30 PM' },
+  { label: 'Maghrib / Evening', time: '06:45 PM' },
+  { label: 'Isha / Night', time: '08:30 PM' },
+  { label: 'Tahajjud', time: '03:30 AM' },
+];
 
 export const ClockTimePickerModal = ({
   isOpen,
@@ -52,11 +62,11 @@ export const ClockTimePickerModal = ({
     }
   }, [isOpen, initialTime]);
 
-  // Compact clock coordinates (210px dial)
-  const DIAL_RADIUS = 90;
-  const CENTER = 105;
+  // Responsive Compact clock coordinates (200px dial)
+  const DIAL_RADIUS = 85;
+  const CENTER = 100;
 
-  const getPositionForAngle = (deg, radius = 72) => {
+  const getPositionForAngle = (deg, radius = 68) => {
     const rad = ((deg - 90) * Math.PI) / 180;
     return {
       x: CENTER + radius * Math.cos(rad),
@@ -64,14 +74,13 @@ export const ClockTimePickerModal = ({
     };
   };
 
-  const handlePointerCalculation = useCallback(
+  const calculateAngleFromPoint = useCallback(
     (clientX, clientY) => {
       if (!clockRef.current) return;
       const rect = clockRef.current.getBoundingClientRect();
-      const x = clientX - rect.left - rect.width / 2;
-      const y = clientY - rect.top - rect.height / 2;
+      const x = clientX - (rect.left + rect.width / 2);
+      const y = clientY - (rect.top + rect.height / 2);
 
-      // Calculate angle from 12 o'clock (top) in degrees [0, 360)
       let angle = (Math.atan2(y, x) * 180) / Math.PI + 90;
       if (angle < 0) angle += 360;
 
@@ -90,12 +99,17 @@ export const ClockTimePickerModal = ({
 
   const handlePointerDown = (e) => {
     setIsDragging(true);
-    handlePointerCalculation(e.clientX, e.clientY);
+    if (e.target.setPointerCapture && e.pointerId) {
+      try {
+        e.target.setPointerCapture(e.pointerId);
+      } catch {}
+    }
+    calculateAngleFromPoint(e.clientX, e.clientY);
   };
 
   const handlePointerMove = (e) => {
     if (!isDragging) return;
-    handlePointerCalculation(e.clientX, e.clientY);
+    calculateAngleFromPoint(e.clientX, e.clientY);
   };
 
   const handlePointerUp = () => {
@@ -105,6 +119,32 @@ export const ClockTimePickerModal = ({
         setTimeout(() => setMode('minutes'), 200);
       }
     }
+  };
+
+  // Steppers for precision fine-tuning
+  const adjustHour = (delta) => {
+    setSelectedHour((prev) => {
+      let next = prev + delta;
+      if (next > 12) next = 1;
+      if (next < 1) next = 12;
+      return next;
+    });
+  };
+
+  const adjustMinute = (delta) => {
+    setSelectedMinute((prev) => {
+      let next = prev + delta;
+      if (next >= 60) next = next % 60;
+      if (next < 0) next = 60 + (next % 60);
+      return next;
+    });
+  };
+
+  const applyPreset = (timeStr) => {
+    const parsed = parseTimeString(timeStr);
+    setSelectedHour(parsed.hour);
+    setSelectedMinute(parsed.minute);
+    setSelectedPeriod(parsed.period);
   };
 
   const formatOutput = () => {
@@ -121,27 +161,24 @@ export const ClockTimePickerModal = ({
 
   if (!isOpen) return null;
 
-  const currentAngle =
-    mode === 'hours'
-      ? selectedHour * 30
-      : selectedMinute * 6;
+  const currentAngle = mode === 'hours' ? selectedHour * 30 : selectedMinute * 6;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs select-none overscroll-contain overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[290px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-scale-up my-auto"
+        className="w-full max-w-[310px] rounded-3xl bg-white dark:bg-[#071924] border border-slate-200 dark:border-[#0f344a] shadow-2xl overflow-hidden animate-scale-up my-auto max-h-[95vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
-        <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/70">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-slate-100 dark:border-[#0f344a]/80 flex items-center justify-between bg-slate-50/80 dark:bg-[#091f2c]/80 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-islamic-primary-100 dark:bg-islamic-primary-950/80 text-islamic-primary-600 dark:text-islamic-primary-400 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-[#e1f3fd] dark:bg-[#0c4059] text-[#088ac1] dark:text-[#3dc3f3] flex items-center justify-center">
               <Clock className="w-3.5 h-3.5" />
             </div>
-            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
               {title}
             </h3>
           </div>
@@ -154,48 +191,84 @@ export const ClockTimePickerModal = ({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-3.5 flex flex-col items-center space-y-2.5">
-          {/* Digital Display + AM/PM Toggle */}
+        {/* Scrollable Dial & Controls Body */}
+        <div className="p-3 sm:p-4 flex flex-col items-center space-y-3 overflow-y-auto">
+          {/* Digital Display with Stepper Arrows */}
           <div className="flex items-center justify-center gap-2 w-full">
-            <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 p-1">
+            {/* Hour Block */}
+            <div className="flex flex-col items-center">
+              <button
+                type="button"
+                onClick={() => adjustHour(1)}
+                className="p-1 text-slate-400 hover:text-[#088ac1] dark:hover:text-[#3dc3f3] transition-colors"
+                title="+1 Hour"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </button>
               <button
                 type="button"
                 onClick={() => setMode('hours')}
-                className={`px-2 py-1 rounded-lg text-xl font-extrabold font-mono transition-all ${
+                className={`w-12 py-1.5 rounded-xl text-xl font-black font-mono text-center transition-all ${
                   mode === 'hours'
-                    ? 'bg-islamic-primary-600 text-white shadow-picton-glow'
-                    : 'text-slate-700 dark:text-slate-300 hover:text-islamic-primary-600'
+                    ? 'bg-[#088ac1] text-white shadow-picton-glow ring-2 ring-[#3dc3f3]'
+                    : 'bg-slate-100 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 hover:bg-slate-200'
                 }`}
               >
                 {selectedHour.toString().padStart(2, '0')}
               </button>
+              <button
+                type="button"
+                onClick={() => adjustHour(-1)}
+                className="p-1 text-slate-400 hover:text-[#088ac1] dark:hover:text-[#3dc3f3] transition-colors"
+                title="-1 Hour"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
 
-              <span className="text-lg font-black text-slate-400 dark:text-slate-500 px-0.5 font-mono">
-                :
-              </span>
+            <span className="text-xl font-black text-slate-400 dark:text-slate-500 font-mono self-center -mt-1">
+              :
+            </span>
 
+            {/* Minute Block */}
+            <div className="flex flex-col items-center">
+              <button
+                type="button"
+                onClick={() => adjustMinute(5)}
+                className="p-1 text-slate-400 hover:text-[#088ac1] dark:hover:text-[#3dc3f3] transition-colors"
+                title="+5 Minutes"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </button>
               <button
                 type="button"
                 onClick={() => setMode('minutes')}
-                className={`px-2 py-1 rounded-lg text-xl font-extrabold font-mono transition-all ${
+                className={`w-12 py-1.5 rounded-xl text-xl font-black font-mono text-center transition-all ${
                   mode === 'minutes'
-                    ? 'bg-islamic-primary-600 text-white shadow-picton-glow'
-                    : 'text-slate-700 dark:text-slate-300 hover:text-islamic-primary-600'
+                    ? 'bg-[#088ac1] text-white shadow-picton-glow ring-2 ring-[#3dc3f3]'
+                    : 'bg-slate-100 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 hover:bg-slate-200'
                 }`}
               >
                 {selectedMinute.toString().padStart(2, '0')}
               </button>
+              <button
+                type="button"
+                onClick={() => adjustMinute(-5)}
+                className="p-1 text-slate-400 hover:text-[#088ac1] dark:hover:text-[#3dc3f3] transition-colors"
+                title="-5 Minutes"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
             </div>
 
             {/* AM / PM Toggle */}
-            <div className="flex flex-col gap-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 p-1 text-[11px] font-extrabold">
+            <div className="flex flex-col gap-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 p-1 text-[11px] font-extrabold ml-1 self-center">
               <button
                 type="button"
                 onClick={() => setSelectedPeriod('AM')}
-                className={`px-2 py-0.5 rounded-md transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all ${
                   selectedPeriod === 'AM'
-                    ? 'bg-amber-500 text-white shadow-sm'
+                    ? 'bg-amber-500 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
@@ -204,9 +277,9 @@ export const ClockTimePickerModal = ({
               <button
                 type="button"
                 onClick={() => setSelectedPeriod('PM')}
-                className={`px-2 py-0.5 rounded-md transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all ${
                   selectedPeriod === 'PM'
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
@@ -217,19 +290,19 @@ export const ClockTimePickerModal = ({
 
           {/* Mode label */}
           <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-center">
-            Select {mode === 'hours' ? 'Hour (1 - 12)' : 'Minute (00 - 59)'}
+            Tap dial to set {mode === 'hours' ? 'Hour' : 'Minute'}
           </div>
 
-          {/* Compact Analog Clock Dial (210x210) */}
+          {/* Analog Clock Dial (200x200) */}
           <div
             ref={clockRef}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            className="relative w-[210px] h-[210px] rounded-full bg-gradient-to-br from-slate-100 to-slate-200/80 dark:from-slate-900 dark:to-slate-800/90 border-2 border-slate-200 dark:border-slate-700/80 shadow-inner flex items-center justify-center cursor-pointer touch-none select-none"
+            className="relative w-[200px] h-[200px] rounded-full bg-gradient-to-br from-slate-50 to-slate-200/90 dark:from-[#091b26] dark:to-[#071722] border-2 border-slate-200 dark:border-[#0f344a] shadow-inner flex items-center justify-center cursor-pointer touch-none select-none"
           >
             {/* Center Pivot Point */}
-            <div className="w-2.5 h-2.5 rounded-full bg-islamic-primary-600 dark:bg-islamic-primary-500 ring-2 ring-white dark:ring-slate-900 z-20 shadow-sm" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#088ac1] dark:bg-[#3dc3f3] ring-2 ring-white dark:ring-[#071924] z-20 shadow-xs" />
 
             {/* Clock Hand Pointer */}
             <div
@@ -237,19 +310,19 @@ export const ClockTimePickerModal = ({
               style={{
                 transform: `rotate(${currentAngle + 180}deg) translate(-50%, 0)`,
                 width: '2px',
-                height: `${DIAL_RADIUS - 16}px`,
+                height: `${DIAL_RADIUS - 14}px`,
               }}
             >
-              <div className="w-full h-full bg-islamic-primary-600 dark:bg-islamic-primary-500 rounded-full shadow-sm" />
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-islamic-primary-600/90 dark:bg-islamic-primary-500/90 shadow-picton-glow" />
+              <div className="w-full h-full bg-[#088ac1] dark:bg-[#3dc3f3] rounded-full shadow-xs" />
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-[#088ac1] dark:bg-[#3dc3f3] shadow-picton-glow" />
             </div>
 
-            {/* Dial Numbers: Hours (1 to 12) or Minutes (00, 05.. 55) */}
+            {/* Dial Numbers */}
             {mode === 'hours'
               ? Array.from({ length: 12 }).map((_, idx) => {
                   const hourNum = idx + 1;
                   const deg = hourNum * 30;
-                  const pos = getPositionForAngle(deg, 72);
+                  const pos = getPositionForAngle(deg, 68);
                   const isSelected = selectedHour === hourNum;
 
                   return (
@@ -277,7 +350,7 @@ export const ClockTimePickerModal = ({
                 })
               : [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((minNum) => {
                   const deg = minNum * 6;
-                  const pos = getPositionForAngle(deg, 72);
+                  const pos = getPositionForAngle(deg, 68);
                   const isSelected = selectedMinute === minNum;
 
                   return (
@@ -292,7 +365,7 @@ export const ClockTimePickerModal = ({
                         left: `${pos.x}px`,
                         top: `${pos.y}px`,
                       }}
-                      className={`absolute -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all z-20 ${
+                      className={`absolute -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all z-20 ${
                         isSelected
                           ? 'text-white font-black scale-110'
                           : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/80 dark:hover:bg-slate-800'
@@ -303,10 +376,30 @@ export const ClockTimePickerModal = ({
                   );
                 })}
           </div>
+
+          {/* Quick Time Presets (Fajr, Dhuhr, Asr, Maghrib, Isha) */}
+          <div className="w-full pt-1 border-t border-slate-100 dark:border-[#0f344a]/80">
+            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1.5">
+              <Sparkles className="w-3 h-3 text-[#088ac1] dark:text-[#3dc3f3]" />
+              <span>Quick Presets:</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {TIME_PRESETS.slice(0, 5).map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => applyPreset(p.time)}
+                  className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 dark:bg-slate-800/80 hover:bg-[#e1f3fd] dark:hover:bg-[#0c4059] text-slate-700 dark:text-slate-300 hover:text-[#088ac1] dark:hover:text-[#3dc3f3] transition-colors"
+                >
+                  {p.label.split('/')[0].trim()} ({p.time.replace(':00', '')})
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Modal Actions */}
-        <div className="px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+        <div className="px-3.5 py-2.5 bg-slate-50 dark:bg-[#091f2c]/90 border-t border-slate-100 dark:border-[#0f344a] flex items-center justify-between gap-2 shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -317,7 +410,7 @@ export const ClockTimePickerModal = ({
           <button
             type="button"
             onClick={handleConfirm}
-            className="px-3.5 py-1.5 rounded-xl bg-islamic-primary-600 hover:bg-islamic-primary-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all"
+            className="px-3.5 py-1.5 rounded-xl bg-[#088ac1] hover:bg-[#1eb4eb] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
           >
             <Check className="w-3.5 h-3.5 stroke-[3]" />
             Set to {formatOutput()}

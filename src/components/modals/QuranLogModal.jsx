@@ -129,7 +129,7 @@ export const QuranLogModal = ({ isOpen, onClose, habit, onSaved }) => {
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
               Juz Read Today (Select or Tap Fraction)
             </label>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               {JUZ_PRESETS.map((preset) => {
                 const isSelected = Math.abs(juzCount - preset.value) < 0.01;
                 return (
@@ -192,7 +192,7 @@ export const QuranLogModal = ({ isOpen, onClose, habit, onSaved }) => {
                 <button
                   type="button"
                   onClick={() => setSelectedAyahNumber(activeSurah.ayahCount)}
-                  className="text-[10px] font-bold text-[#088ac1] dark:text-[#3dc3f3] hover:underline"
+                  className="text-[10px] font-bold text-[#088ac1] dark:text-[#3dc3f3] hover:underline cursor-pointer"
                 >
                   End of Surah
                 </button>
@@ -223,7 +223,7 @@ export const QuranLogModal = ({ isOpen, onClose, habit, onSaved }) => {
         </div>
 
         {/* 3. Pages & Duration Details */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               Pages Count (~{Math.round((juzCount || 0) * 20)} pages)
@@ -266,15 +266,15 @@ export const QuranLogModal = ({ isOpen, onClose, habit, onSaved }) => {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-slate-200/80 dark:border-slate-800">
           <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
             ✓ Marks Qur’an as completed for today
           </span>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={onClose}>
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2">
+            <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
+            <Button type="submit" variant="primary" disabled={submitting} className="w-full sm:w-auto">
               {submitting ? 'Saving...' : 'Save & Mark Completed'}
             </Button>
           </div>

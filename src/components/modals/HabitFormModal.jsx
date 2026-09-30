@@ -114,7 +114,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               Category
@@ -122,7 +122,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-[#1eb4eb]"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-[#1eb4eb]"
             >
               <option value="sunnah">Sunnah Prayers & Acts</option>
               <option value="dhikr">Adhkar / Dhikr</option>
@@ -146,7 +146,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
                   setSpecificDays([4]); // Default to Friday
                 }
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-[#1eb4eb]"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-[#1eb4eb]"
             >
               <option value="daily">Every Day</option>
               <option value="weekdays">Weekdays (Mon – Fri)</option>
@@ -158,19 +158,19 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
 
         {/* Which Day of the Week Picker (for Weekly Once & Specific Days) */}
         {(frequency === 'weekly_once' || frequency === 'weekly_target' || frequency === 'specific_days') && (
-          <div className="p-3.5 rounded-2xl bg-[#f0faff] dark:bg-[#0f4d6b]/20 border border-[#bce8fb] dark:border-[#0b5d81]/60 space-y-2.5">
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-[#f0faff] dark:bg-[#0f4d6b]/20 border border-[#bce8fb] dark:border-[#0b5d81]/60 space-y-2">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold text-[#076e9d] dark:text-[#81d7f8]">
                 {frequency === 'weekly_once' || frequency === 'weekly_target'
                   ? `Which Day of the Week? (${selectedDayName})`
                   : 'Select Days of the Week'}
               </label>
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Shows on that day only
               </span>
             </div>
 
-            <div className="grid grid-cols-7 gap-1.5">
+            <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
               {DAYS_OF_WEEK.map((day) => {
                 const isSelected = specificDays.includes(day.id);
                 return (
@@ -178,7 +178,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
                     key={day.id}
                     type="button"
                     onClick={() => handleDaySelect(day.id)}
-                    className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center cursor-pointer relative ${
+                    className={`py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl text-[11px] sm:text-xs font-bold transition-all text-center cursor-pointer relative ${
                       isSelected
                         ? 'bg-[#088ac1] text-white shadow-md shadow-[#088ac1]/30 ring-2 ring-[#3dc3f3]'
                         : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[#088ac1]'
@@ -186,7 +186,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
                   >
                     <span>{day.label}</span>
                     {day.badge && (
-                      <span className="block text-[8px] font-extrabold text-amber-500 leading-none mt-0.5">
+                      <span className="block text-[7px] sm:text-[8px] font-extrabold text-amber-500 leading-none mt-0.5">
                         ★ Fri
                       </span>
                     )}
@@ -195,7 +195,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
               })}
             </div>
 
-            <p className="text-[11px] text-[#076e9d] dark:text-[#81d7f8] font-medium">
+            <p className="text-[10px] sm:text-[11px] text-[#076e9d] dark:text-[#81d7f8] font-medium">
               💡 This habit will appear on your Home schedule every{' '}
               <strong>
                 {specificDays.map((d) => DAYS_OF_WEEK.find((item) => item.id === d)?.full).join(', ')}
@@ -204,7 +204,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               Target Duration (Mins)
@@ -214,7 +214,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
               min="1"
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-islamic-primary-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-islamic-primary-500"
             />
           </div>
 

@@ -118,7 +118,6 @@ export const AddDhikrTaskModal = ({
             category: 'custom',
           });
         } catch (counterErr) {
-          // If counter creation fails or already exists, non-blocking
           console.warn('Awrad counter creation note:', counterErr);
         }
       }
@@ -135,18 +134,18 @@ export const AddDhikrTaskModal = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Custom Dhikr Task">
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal isOpen={isOpen} onClose={onClose} title="Add Custom Dhikr Task" maxWidth="max-w-lg">
+      <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
         {/* Banner */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#088ac1]/15 via-[#1eb4eb]/10 to-transparent border border-[#3dc3f3]/30 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#088ac1] text-white flex items-center justify-center shrink-0 shadow-sm">
-            <Repeat className="w-5 h-5" />
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-[#088ac1]/15 via-[#1eb4eb]/10 to-transparent border border-[#3dc3f3]/30 flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#088ac1] text-white flex items-center justify-center shrink-0 shadow-xs">
+            <Repeat className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="min-w-0">
             <h4 className="text-xs font-bold text-slate-900 dark:text-white">
               Dhikr Milestone & Task Tracker
             </h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 truncate sm:whitespace-normal">
               Set high-volume Dhikr goals (e.g. 2,000 Astaghfirullah) to complete by a target time.
             </p>
           </div>
@@ -160,7 +159,7 @@ export const AddDhikrTaskModal = ({
           <select
             value={selectedPreset}
             onChange={(e) => handlePresetChange(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-[#1eb4eb]"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-[#1eb4eb]"
           >
             {PRESET_DHIKR_OPTIONS.map((opt) => (
               <option key={opt.name} value={opt.name}>
@@ -181,7 +180,7 @@ export const AddDhikrTaskModal = ({
               value={customDhikrName}
               onChange={(e) => setCustomDhikrName(e.target.value)}
               placeholder="e.g. Ya Hayyu Ya Qayyum, Ayah al-Kursi"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-[#1eb4eb]"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-[#1eb4eb]"
             />
           </div>
         )}
@@ -197,7 +196,7 @@ export const AddDhikrTaskModal = ({
             onChange={(e) => setArabicText(e.target.value)}
             placeholder="أَسْتَغْفِرُ اللَّهَ"
             dir="rtl"
-            className="w-full px-3.5 py-2 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-base font-arabic focus:ring-2 focus:ring-[#1eb4eb]"
+            className="w-full px-3.5 py-2 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm sm:text-base font-arabic focus:ring-2 focus:ring-[#1eb4eb]"
           />
         </div>
 
@@ -218,7 +217,7 @@ export const AddDhikrTaskModal = ({
                 key={cnt}
                 type="button"
                 onClick={() => setTargetCount(cnt)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                className={`px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all ${
                   Number(targetCount) === cnt
                     ? 'bg-[#088ac1] text-white shadow-xs scale-105'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -237,7 +236,7 @@ export const AddDhikrTaskModal = ({
             value={targetCount}
             onChange={(e) => setTargetCount(e.target.value)}
             placeholder="e.g. 2000"
-            className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-[#1eb4eb]"
+            className="w-full px-3.5 py-2 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-[#1eb4eb]"
           />
         </div>
 
@@ -251,12 +250,12 @@ export const AddDhikrTaskModal = ({
             required
             value={taskTitle}
             onChange={(e) => setTaskTitle(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-[#1eb4eb]"
+            className="w-full px-3.5 py-2 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-[#1eb4eb]"
           />
         </div>
 
-        {/* 4. Due Date, Time & Priority */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* 4. Due Date, Time & Priority in Responsive Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               Due Date
@@ -265,19 +264,19 @@ export const AddDhikrTaskModal = ({
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-[#1eb4eb]"
+              className="w-full px-3.5 py-2 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-[#1eb4eb]"
             />
           </div>
 
           <TimePickerField
             value={dueTime}
             onChange={(newTime) => setDueTime(newTime)}
-            label="Target Time"
+            label="Target Time (Clock)"
             modalTitle="Set Dhikr Task Deadline"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 items-center">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               Priority
@@ -285,7 +284,7 @@ export const AddDhikrTaskModal = ({
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-[#1eb4eb]"
+              className="w-full px-3.5 py-2 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-[#1eb4eb]"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -294,8 +293,8 @@ export const AddDhikrTaskModal = ({
             </select>
           </div>
 
-          <div className="flex items-center">
-            <label className="flex items-center gap-2 cursor-pointer mt-4 select-none">
+          <div className="flex items-center pt-1 sm:pt-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={createCounterInTasbih}
@@ -311,10 +310,10 @@ export const AddDhikrTaskModal = ({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} size="sm">
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={submitting}>
+          <Button type="submit" variant="primary" size="sm" disabled={submitting}>
             {submitting ? 'Creating Task...' : `Add Dhikr Task (${Number(targetCount || 0).toLocaleString()}x)`}
           </Button>
         </div>
