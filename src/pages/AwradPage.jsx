@@ -16,6 +16,7 @@ import { AddAwradModal } from '../components/modals/AddAwradModal';
 import { useNotification } from '../context/NotificationContext';
 import { Button, Badge } from '../components/common/UIComponents';
 import { ProgressRing } from '../components/common/ProgressRing';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export const AwradPage = () => {
   const [awradList, setAwradList] = useState([]);
@@ -29,7 +30,8 @@ export const AwradPage = () => {
   const fetchAwrad = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await awradApi.getAwrad();
+      const localDate = getLocalDateString();
+      const res = await awradApi.getAwrad({ date: localDate });
       const list = res.data || [];
       setAwradList(list);
       if (list.length > 0) {
@@ -56,8 +58,9 @@ export const AwradPage = () => {
     if (soundActive) playChime('tap');
     triggerHaptic(25);
 
+    const localDate = getLocalDateString();
     try {
-      const res = await awradApi.increment(activeAwrad.id, { delta: stepSize });
+      const res = await awradApi.increment(activeAwrad.id, { delta: stepSize, date: localDate });
       const updatedCount = res.data.current_count;
       const targetCount = activeAwrad.target_count;
 
@@ -92,7 +95,8 @@ export const AwradPage = () => {
 
   const handleReset = async (id, name) => {
     try {
-      await awradApi.reset(id);
+      const localDate = getLocalDateString();
+      await awradApi.reset(id, { date: localDate });
       fetchAwrad();
       showToast('Counter Reset', `Reset counter for ${name}`, 'neutral');
     } catch (e) {

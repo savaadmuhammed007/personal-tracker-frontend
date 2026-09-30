@@ -56,7 +56,7 @@ export const PrayerProvider = ({ children }) => {
     }
     try {
       const res = await prayerApi.getToday(targetDate);
-      if (res?.data) {
+      if (res?.data && Array.isArray(res.data.prayers) && res.data.prayers.length > 0) {
         setData(res.data);
         hasLoadedRef.current = true;
         try {
@@ -64,7 +64,7 @@ export const PrayerProvider = ({ children }) => {
         } catch {}
       }
     } catch (err) {
-      console.error('Failed to load prayer times:', err);
+      console.warn('Failed to load prayer times from server, using cached/local state:', err);
     } finally {
       setIsLoading(false);
     }
@@ -208,19 +208,14 @@ export const PrayerProvider = ({ children }) => {
       });
       // Background silent refresh for exact server streaks and timestamps
       const res = await prayerApi.getToday(localDate);
-      if (res?.data) {
+      if (res?.data && Array.isArray(res.data.prayers) && res.data.prayers.length > 0) {
         setData(res.data);
         try {
           localStorage.setItem(PRAYER_CACHE_KEY, JSON.stringify(res.data));
         } catch {}
       }
     } catch (err) {
-      console.error('Failed to toggle prayer:', err);
-      // Revert from server
-      const res = await prayerApi.getToday(localDate);
-      if (res?.data) {
-        setData(res.data);
-      }
+      console.warn('Network issue during prayer toggle, retaining optimistic checkmark:', err);
     }
   };
 

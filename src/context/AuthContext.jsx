@@ -61,6 +61,8 @@ export const AuthProvider = ({ children }) => {
       if (res.data?.user) {
         setUser(res.data.user);
         localStorage.setItem('user_data', JSON.stringify(res.data.user));
+        if (res.data.access) localStorage.setItem('access_token', res.data.access);
+        if (res.data.refresh) localStorage.setItem('refresh_token', res.data.refresh);
         return res.data.user;
       }
     } catch {
@@ -79,6 +81,8 @@ export const AuthProvider = ({ children }) => {
       if (res.data?.user) {
         setUser(res.data.user);
         localStorage.setItem('user_data', JSON.stringify(res.data.user));
+        if (res.data.access) localStorage.setItem('access_token', res.data.access);
+        if (res.data.refresh) localStorage.setItem('refresh_token', res.data.refresh);
         return res.data.user;
       }
     } catch {

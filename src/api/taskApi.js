@@ -5,5 +5,5 @@ export const taskApi = {
   createTask: (data) => api.post('/tasks/', data),
   updateTask: (id, data) => api.patch(`/tasks/${id}/`, data),
   deleteTask: (id) => api.delete(`/tasks/${id}/`),
-  toggleTask: (id) => api.post(`/tasks/${id}/toggle/`),
+  toggleTask: (id, data) => api.post(`/tasks/${id}/toggle/`, data || {}),
 };
