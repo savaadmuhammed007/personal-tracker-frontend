@@ -3,57 +3,51 @@ import { authApi } from '../api/authApi';
 
 const AuthContext = createContext(null);
 
-const getStoredToken = () => {
-  try {
-    const t = localStorage.getItem('access_token');
-    return (t && t !== 'undefined' && t !== 'null' && t.trim() !== '') ? t : null;
-  } catch {
-    return null;
+const defaultInitialUser = {
+  id: 2,
+  username: 'savaadmuhammed',
+  first_name: 'Savaad Muhammed',
+  email: 'savaadmuhammed786@gmail.com',
+  profile: {
+    display_name: 'Savaad Muhammed',
+    city: 'Kannur',
+    country: 'India',
+    latitude: 11.5867,
+    longitude: 76.1074,
+    timezone: 'Asia/Calcutta',
+    calculation_method: 'Karachi',
+    asr_method: 'Standard',
+    sound_enabled: true,
+    haptic_enabled: true,
+    prayer_notifications: true,
+    habit_notifications: true,
+    task_notifications: true,
   }
 };
 
 const getStoredUser = () => {
   try {
     const saved = localStorage.getItem('user_data');
-    return (saved && saved !== 'undefined' && saved !== 'null' && saved.trim() !== '')
-      ? JSON.parse(saved)
-      : null;
-  } catch {
-    return null;
-  }
+    if (saved && saved !== 'undefined' && saved !== 'null' && saved.trim() !== '') {
+      return JSON.parse(saved);
+    }
+  } catch {}
+  return defaultInitialUser;
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(getStoredUser);
-  const [token, setToken] = useState(getStoredToken);
-  // If we already have cached token and user, render instantly without blocking loading spinner
-  const [isLoading, setIsLoading] = useState(() => {
-    const initialToken = getStoredToken();
-    const initialUser = getStoredUser();
-    return Boolean(initialToken && !initialUser);
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchCurrentUser = async () => {
-    const currentToken = getStoredToken();
-    if (!currentToken) {
-      setUser(null);
-      setToken(null);
-      setIsLoading(false);
-      return;
-    }
     try {
       const res = await authApi.getMe();
-      setUser(res.data);
-      localStorage.setItem('user_data', JSON.stringify(res.data));
+      if (res.data) {
+        setUser(res.data);
+        localStorage.setItem('user_data', JSON.stringify(res.data));
+      }
     } catch (err) {
-      console.error('Failed to fetch user:', err);
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user_data');
-      setUser(null);
-      setToken(null);
-    } finally {
-      setIsLoading(false);
+      console.warn('Fetched user data with local fallback:', err);
     }
   };
 
@@ -62,16 +56,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (username, password) => {
-    const res = await authApi.login(username, password);
-    const { access, refresh, user: userData } = res.data;
-    
-    localStorage.setItem('access_token', access);
-    localStorage.setItem('refresh_token', refresh);
-    localStorage.setItem('user_data', JSON.stringify(userData));
-    
-    setToken(access);
-    setUser(userData);
-    return userData;
+    try {
+      const res = await authApi.login(username, password);
+      if (res.data?.user) {
+        setUser(res.data.user);
+        localStorage.setItem('user_data', JSON.stringify(res.data.user));
+        return res.data.user;
+      }
+    } catch {
+      await fetchCurrentUser();
+    }
+    return user;
   };
 
   const demoLogin = async () => {
@@ -79,24 +74,22 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (formData) => {
-    const res = await authApi.register(formData);
-    const { access, refresh, user: userData } = res.data;
-
-    localStorage.setItem('access_token', access);
-    localStorage.setItem('refresh_token', refresh);
-    localStorage.setItem('user_data', JSON.stringify(userData));
-
-    setToken(access);
-    setUser(userData);
-    return userData;
+    try {
+      const res = await authApi.register(formData);
+      if (res.data?.user) {
+        setUser(res.data.user);
+        localStorage.setItem('user_data', JSON.stringify(res.data.user));
+        return res.data.user;
+      }
+    } catch {
+      await fetchCurrentUser();
+    }
+    return user;
   };
 
   const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user_data');
-    setToken(null);
-    setUser(null);
+    // In single-user mode, logout simply re-synchronizes the user's data
+    fetchCurrentUser();
   };
 
   const refreshProfile = async () => {
@@ -107,10 +100,10 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
-        profile: user?.profile || {},
-        token,
-        isAuthenticated: !!token,
-        isLoading,
+        profile: user?.profile || defaultInitialUser.profile,
+        token: 'single-user-session',
+        isAuthenticated: true,
+        isLoading: false,
         login,
         demoLogin,
         register,

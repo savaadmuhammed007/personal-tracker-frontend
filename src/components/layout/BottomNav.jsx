@@ -217,23 +217,29 @@ export const BottomNav = () => {
             <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600 mx-auto mb-3.5" />
 
             {/* Header: User Profile & Quick Actions */}
-            <div className="flex items-center justify-between gap-3 pb-3.5 mb-3.5 border-b border-slate-100 dark:border-slate-800">
+            <div
+              onClick={() => {
+                setIsMoreOpen(false);
+                navigate('/settings');
+              }}
+              className="flex items-center justify-between gap-3 pb-3.5 mb-3.5 border-b border-slate-100 dark:border-slate-800 cursor-pointer hover:opacity-90 active:scale-[0.99] transition-all"
+            >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#088ac1] to-[#3dc3f3] text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
-                  {(profile?.display_name || user?.username || 'U')[0].toUpperCase()}
+                  {(profile?.display_name || user?.username || 'S')[0].toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                    {profile?.display_name || user?.username || 'Believer'}
+                    {profile?.display_name || user?.username || 'Savaad Muhammed'}
                   </p>
                   <p className="text-[11px] text-slate-400 dark:text-slate-400 truncate">
-                    {profile?.city || 'Mecca'}
+                    {profile?.city || 'Kannur'}, {profile?.country || 'India'}
                   </p>
                 </div>
               </div>
 
               {/* Theme Toggle & Close */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   onClick={toggleTheme}
@@ -258,7 +264,7 @@ export const BottomNav = () => {
             </div>
 
             {/* Quick Navigation Items Grid */}
-            <div className="space-y-1.5 mb-4">
+            <div className="space-y-1.5 mb-2">
               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider px-1">
                 More Sections
               </span>
@@ -300,16 +306,6 @@ export const BottomNav = () => {
                 })}
               </div>
             </div>
-
-            {/* Logout Button */}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 font-semibold text-xs hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer active:scale-95"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Log Out</span>
-            </button>
           </div>
         </div>
       )}

@@ -42,14 +42,13 @@ const getInitialPrayerData = () => {
 };
 
 export const PrayerProvider = ({ children }) => {
-  const { isAuthenticated, refreshProfile } = useAuth();
+  const { refreshProfile } = useAuth();
   const [data, setData] = useState(getInitialPrayerData);
   const [isLoading, setIsLoading] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const hasLoadedRef = useRef(Boolean(data.prayers && data.prayers.length > 0));
 
   const fetchTodayPrayers = useCallback(async (dateStr) => {
-    if (!isAuthenticated) return;
     const targetDate = dateStr || getLocalDateString();
     // Only show blocking loader if no prayer data exists yet
     if (!hasLoadedRef.current) {
@@ -69,18 +68,16 @@ export const PrayerProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    fetchTodayPrayers();
+    // Polling every 5 minutes for countdown sync
+    const interval = setInterval(() => {
       fetchTodayPrayers();
-      // Polling every 5 minutes for countdown sync
-      const interval = setInterval(() => {
-        fetchTodayPrayers();
-      }, 300000);
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated, fetchTodayPrayers]);
+    }, 300000);
+    return () => clearInterval(interval);
+  }, [fetchTodayPrayers]);
 
   const updateLocation = async (locationPayload) => {
     try {

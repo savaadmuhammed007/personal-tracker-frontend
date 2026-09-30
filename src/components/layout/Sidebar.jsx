@@ -459,30 +459,26 @@ export const Sidebar = () => {
           {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
         </button>
 
-        {/* User Profile Avatar with Logout */}
-        <div className="relative group">
-          <div className="w-9 h-9 rounded-xl bg-[#e1f3fd] dark:bg-[#1eb4eb]/20 border border-[#bce8fb] dark:border-[#1eb4eb]/30 text-[#076e9d] dark:text-[#3dc3f3] flex items-center justify-center font-bold text-xs cursor-pointer shadow-xs">
-            {(profile?.display_name || user?.username || 'U')[0].toUpperCase()}
+        {/* User Profile Avatar linking to Settings */}
+        <div
+          onClick={() => navigate('/settings')}
+          className="relative group cursor-pointer"
+          title="Open Settings & Profile"
+        >
+          <div className="w-9 h-9 rounded-xl bg-[#e1f3fd] dark:bg-[#1eb4eb]/20 border border-[#bce8fb] dark:border-[#1eb4eb]/30 text-[#076e9d] dark:text-[#3dc3f3] flex items-center justify-center font-bold text-xs shadow-xs hover:scale-105 active:scale-95 transition-transform">
+            {(profile?.display_name || user?.username || 'S')[0].toUpperCase()}
           </div>
 
-          {/* Quick Logout Popover on Hover */}
-          <div className="absolute left-full bottom-0 ml-2 hidden group-hover:flex items-center gap-2 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 whitespace-nowrap">
+          {/* Quick Profile Popover on Hover */}
+          <div className="absolute left-full bottom-0 ml-2 hidden group-hover:flex items-center gap-2 p-2 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 whitespace-nowrap">
             <div className="text-left">
               <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                {profile?.display_name || user?.username || 'User'}
+                {profile?.display_name || user?.username || 'Savaad Muhammed'}
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                {profile?.city || 'Mecca'}
+                {profile?.city || 'Kannur'}, {profile?.country || 'India'}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="p-1.5 rounded-lg text-rose-500 hover:text-white hover:bg-rose-600 transition-colors cursor-pointer"
-              title="Log Out"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
           </div>
         </div>
       </div>

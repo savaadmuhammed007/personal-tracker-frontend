@@ -36,15 +36,14 @@ export const checkBackendHealth = async (overrideUrl) => {
     const res = await axios.get(`${target}/auth/me/`, { timeout: 8000 });
     return { ok: true, status: res.status, latency: Date.now() - start, target };
   } catch (err) {
-    // 401 Unauthorized means the server IS connected and responding!
-    if (err.response && err.response.status === 401) {
-      return { ok: true, status: 401, latency: Date.now() - start, target };
+    if (err.response && (err.response.status === 200 || err.response.status === 401)) {
+      return { ok: true, status: err.response.status, latency: Date.now() - start, target };
     }
     return { ok: false, error: err.message, latency: Date.now() - start, target };
   }
 };
 
-// Request interceptor to attach JWT access token
+// Request interceptor: attach token if present (optional in single-user mode)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
@@ -56,36 +55,10 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle token refresh on 401
+// Response interceptor: don't boot user to login screen on transient errors
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    const url = originalRequest?.url || '';
-    const isAuthRequest = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh');
-
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
-      originalRequest._retry = true;
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        try {
-          const res = await axios.post(`${API_URL}/auth/refresh/`, { refresh: refreshToken });
-          if (res.data?.access) {
-            localStorage.setItem('access_token', res.data.access);
-            originalRequest.headers.Authorization = `Bearer ${res.data.access}`;
-            return api(originalRequest);
-          }
-        } catch (refreshErr) {
-          // Token expired or invalid -> clear tokens
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user_data');
-          window.location.href = '/login';
-        }
-      }
-    }
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default api;

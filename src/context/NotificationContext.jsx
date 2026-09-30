@@ -1,10 +1,26 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import { NotificationPermissionModal } from '../components/modals/NotificationPermissionModal';
 
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const [notificationPermission, setNotificationPermission] = useState(() => {
+    return 'Notification' in window ? Notification.permission : 'unsupported';
+  });
+  const [notificationDuration, setNotificationDuration] = useState(() => {
+    return localStorage.getItem('notification_duration') || 'forever';
+  });
+  const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+
   const audioCtxRef = useRef(null);
+
+  // Sync native permission on mount
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
 
   // Synthesize pleasant acoustic chime using Web Audio API (reusing singleton context)
   const playChime = useCallback((type = 'complete') => {
@@ -65,6 +81,115 @@ export const NotificationProvider = ({ children }) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const openNotificationModal = useCallback(() => {
+    setIsPermissionModalOpen(true);
+  }, []);
+
+  const closeNotificationModal = useCallback(() => {
+    setIsPermissionModalOpen(false);
+  }, []);
+
+  const enableNotificationsWithDuration = useCallback(async (durationChoice = 'forever') => {
+    if (!('Notification' in window)) {
+      showToast('Unsupported', 'Web notifications are not supported on this browser.', 'error');
+      return false;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+
+      if (permission === 'granted') {
+        localStorage.setItem('notification_duration', durationChoice);
+        setNotificationDuration(durationChoice);
+
+        if (durationChoice === '1_hour') {
+          const expiryTime = Date.now() + 60 * 60 * 1000;
+          localStorage.setItem('notification_expiry', String(expiryTime));
+        } else {
+          localStorage.removeItem('notification_expiry');
+        }
+
+        if (durationChoice === 'close_site') {
+          sessionStorage.setItem('notification_session_active', 'true');
+        } else {
+          sessionStorage.removeItem('notification_session_active');
+        }
+
+        const durationLabels = {
+          forever: 'Forever (Always On)',
+          '1_hour': 'For 1 Hour',
+          close_site: 'Until You Close Site',
+          prayer_only: 'Prayer Times Only',
+        };
+
+        showToast(
+          'Notifications Active',
+          `Alhamdulillah! Alerts enabled: ${durationLabels[durationChoice] || durationChoice}.`
+        );
+        playChime('complete');
+        triggerHaptic(50);
+
+        // Send a welcome test notification
+        const welcomeTitle = 'يومي | Notifications Enabled';
+        const welcomeBody = `Device alerts set to ${durationLabels[durationChoice] || durationChoice}. You will receive Adhan reminders.`;
+
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          const reg = await navigator.serviceWorker.ready;
+          reg.showNotification(welcomeTitle, {
+            body: welcomeBody,
+            icon: '/icons/crescent-star.svg',
+            badge: '/icons/crescent-star.svg',
+          });
+        } else {
+          new Notification(welcomeTitle, {
+            body: welcomeBody,
+            icon: '/icons/crescent-star.svg',
+          });
+        }
+        return true;
+      } else if (permission === 'denied') {
+        showToast('Permission Blocked', 'Notifications were blocked in your browser settings.', 'error');
+        return false;
+      }
+      return false;
+    } catch (err) {
+      console.error('Notification permission error:', err);
+      showToast('Permission Error', 'Could not request notification access.', 'error');
+      return false;
+    }
+  }, [showToast, playChime, triggerHaptic]);
+
+  const testNotification = useCallback(async () => {
+    if (Notification.permission !== 'granted') {
+      openNotificationModal();
+      return;
+    }
+    playChime('complete');
+    triggerHaptic(50);
+    try {
+      const testTitle = 'يومي | Adhan Alert Test';
+      const testBody = 'Hayya ‘ala-s-Salah! Notifications and audio feedback are fully working.';
+
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        const reg = await navigator.serviceWorker.ready;
+        reg.showNotification(testTitle, {
+          body: testBody,
+          icon: '/icons/crescent-star.svg',
+          badge: '/icons/crescent-star.svg',
+        });
+      } else {
+        new Notification(testTitle, {
+          body: testBody,
+          icon: '/icons/crescent-star.svg',
+        });
+      }
+      showToast('Alert Sent', 'Check your device notification center.');
+    } catch (err) {
+      console.error('Test alert error:', err);
+    }
+  }, [openNotificationModal, playChime, triggerHaptic, showToast]);
+
   return (
     <NotificationContext.Provider
       value={{
@@ -73,9 +198,22 @@ export const NotificationProvider = ({ children }) => {
         removeToast,
         playChime,
         triggerHaptic,
+        notificationPermission,
+        notificationDuration,
+        openNotificationModal,
+        closeNotificationModal,
+        enableNotificationsWithDuration,
+        testNotification,
       }}
     >
       {children}
+
+      {/* Global Notification Enable & Duration Modal */}
+      <NotificationPermissionModal
+        isOpen={isPermissionModalOpen}
+        onClose={closeNotificationModal}
+      />
+
       {/* Toast container */}
       <div className="fixed bottom-20 md:bottom-6 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
         {toasts.map((toast) => (
