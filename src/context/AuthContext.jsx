@@ -15,67 +15,40 @@ const getStoredUser = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(getStoredUser);
-  const [token, setToken] = useState(() => localStorage.getItem('access_token') || null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem('access_token') || null;
+    } catch {
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Validate session and refresh user profile on initial load
+  // Validate session and refresh user profile non-blockingly in the background
   useEffect(() => {
     let isMounted = true;
-    const initAuth = async () => {
-      const storedToken = localStorage.getItem('access_token');
-      const storedUser = localStorage.getItem('user_data');
-      const isExplicitLogout = localStorage.getItem('explicit_logout');
+    const storedToken = localStorage.getItem('access_token');
+    const storedUser = localStorage.getItem('user_data');
 
-      if (storedToken) {
-        setToken(storedToken);
-        if (storedUser) {
-          try {
-            setUser(JSON.parse(storedUser));
-          } catch {}
-        }
+    if (storedToken) {
+      setToken(storedToken);
+      if (storedUser) {
         try {
-          const res = await authApi.getMe();
+          setUser(JSON.parse(storedUser));
+        } catch {}
+      }
+      authApi.getMe()
+        .then((res) => {
           if (isMounted && res.data) {
             setUser(res.data);
             localStorage.setItem('user_data', JSON.stringify(res.data));
           }
-        } catch (err) {
-          console.warn('Initial session validation error (will attempt refresh if needed):', err);
-        }
-      } else if (!isExplicitLogout) {
-        // Automatically authenticate main personal account with JWT so the dashboard loads seamlessly
-        try {
-          const res = await authApi.login('savaadmuhammed', 'password123');
-          const data = res.data;
-          if (isMounted && data.access) {
-            localStorage.setItem('access_token', data.access);
-            setToken(data.access);
-            if (data.refresh) localStorage.setItem('refresh_token', data.refresh);
-            if (data.user) {
-              localStorage.setItem('user_data', JSON.stringify(data.user));
-              setUser(data.user);
-            }
-          }
-        } catch (autoErr) {
-          console.warn('Auto initial sign-in error:', autoErr);
-          if (isMounted) {
-            setUser(null);
-            setToken(null);
-          }
-        }
-      } else {
-        if (isMounted) {
-          setUser(null);
-          setToken(null);
-        }
-      }
+        })
+        .catch((err) => {
+          console.warn('Background profile refresh error:', err);
+        });
+    }
 
-      if (isMounted) {
-        setIsLoading(false);
-      }
-    };
-
-    initAuth();
     return () => {
       isMounted = false;
     };

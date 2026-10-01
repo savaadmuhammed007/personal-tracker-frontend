@@ -119,7 +119,7 @@ export const RegisterPage = () => {
       });
 
       showToast('Account Created', 'Alhamdulillah! Your personal habit tracker is ready.');
-      navigate('/', { replace: true });
+      window.location.href = '/';
     } catch (err) {
       console.error('Registration error:', err);
       const data = err.response?.data;
@@ -132,7 +132,6 @@ export const RegisterPage = () => {
         else if (data.message) msg = data.message;
       }
       setErrorMsg(msg);
-    } finally {
       setLoading(false);
     }
   };
@@ -143,10 +142,9 @@ export const RegisterPage = () => {
     try {
       await demoLogin();
       showToast('Demo Mode', 'Signed in as Demo User with full preview data.');
-      navigate('/', { replace: true });
+      window.location.href = '/';
     } catch (err) {
       setErrorMsg('Failed to sign in with demo account.');
-    } finally {
       setLoading(false);
     }
   };

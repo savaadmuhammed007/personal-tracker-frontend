@@ -42,15 +42,15 @@ export const LoginPage = () => {
     try {
       await login(username.trim(), password);
       showToast('Welcome Back', `Alhamdulillah! Signed in successfully.`);
-      navigate('/', { replace: true });
+      window.location.href = '/';
     } catch (err) {
       console.error('Login error:', err);
       const detail =
         err.response?.data?.detail ||
         err.response?.data?.non_field_errors?.[0] ||
+        err.message ||
         'Invalid username/email or password. Please try again.';
       setErrorMsg(detail);
-    } finally {
       setLoading(false);
     }
   };
@@ -61,11 +61,14 @@ export const LoginPage = () => {
     try {
       await ownerLogin();
       showToast('Welcome Savaad', 'Signed in as Savaad Muhammed (Main Account).');
-      navigate('/', { replace: true });
+      window.location.href = '/';
     } catch (err) {
       console.error('Owner login failed:', err);
-      setErrorMsg('Failed to authenticate. Please check password or network.');
-    } finally {
+      const detail =
+        err.response?.data?.detail ||
+        err.message ||
+        'Failed to authenticate. Please check password or network.';
+      setErrorMsg(detail);
       setLoading(false);
     }
   };
@@ -76,10 +79,14 @@ export const LoginPage = () => {
     try {
       await demoLogin();
       showToast('Demo Mode', 'Signed in as Demo User with preview data.');
-      navigate('/', { replace: true });
+      window.location.href = '/';
     } catch (err) {
-      setErrorMsg('Failed to sign in with demo account.');
-    } finally {
+      console.error('Demo login failed:', err);
+      const detail =
+        err.response?.data?.detail ||
+        err.message ||
+        'Failed to sign in with demo account.';
+      setErrorMsg(detail);
       setLoading(false);
     }
   };
