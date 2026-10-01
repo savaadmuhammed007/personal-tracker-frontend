@@ -153,6 +153,7 @@ export const HabitsPage = () => {
   const categories = [
     { id: 'all', label: 'All Habits' },
     { id: 'today', label: '📅 Scheduled Today' },
+    { id: 'quran', label: "📖 Qur'an" },
     { id: 'sunnah', label: 'Sunnah Prayers' },
     { id: 'dhikr', label: 'Adhkar / Dhikr' },
     { id: 'sadaqah', label: 'Sadaqah' },
@@ -365,40 +366,76 @@ export const HabitsPage = () => {
                   {/* Quran logging preview & bookmark */}
                   {isQuran && (
                     <div className="mt-3 space-y-2">
-                      {habit.today_completion ? (
-                        <div className="p-3 rounded-2xl bg-[#e1f3fd]/80 dark:bg-[#0f4d6b]/35 border border-[#bce8fb] dark:border-[#0b5d81]/60 text-xs space-y-1">
-                          <div className="flex items-center justify-between font-bold text-[#076e9d] dark:text-[#81d7f8]">
-                            <span className="flex items-center gap-1.5">
-                              <BookOpen className="w-4 h-4 text-[#088ac1] dark:text-[#3dc3f3]" />
-                              Surah {habit.today_completion.surah_name || habit.last_surah_name || 'Al-Baqarah'}
-                            </span>
-                            <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#bce8fb] dark:bg-[#088ac1]/50 text-[#076e9d] dark:text-white font-extrabold">
-                              {habit.today_completion.juz_count || (habit.today_completion.pages_read ? Number((habit.today_completion.pages_read / 20).toFixed(2)) : 1.0)} Juz
-                            </span>
-                          </div>
-                          <p className="text-[#088ac1] dark:text-[#3dc3f3] text-[11px] font-medium">
-                            Last read Ayah {habit.today_completion.last_ayah_number || habit.today_completion.ayah_end || habit.last_ayah_number || 1} • {habit.today_completion.pages_read || Math.round((habit.today_completion.juz_count || 1) * 20)} pages • Goal: {habit.target_juz_goal || 1.0} Juz
-                          </p>
-                          {habit.today_completion.notes && (
-                            <p className="text-[11px] text-slate-600 dark:text-slate-300 italic pt-1 border-t border-[#bce8fb]/60 dark:border-[#0b5d81]/40">
-                              "{habit.today_completion.notes}"
+                      {habit.last_surah_number ? (
+                        /* Specific Surah Habit Card */
+                        habit.today_completion ? (
+                          <div className="p-3 rounded-2xl bg-[#e1f3fd]/80 dark:bg-[#0f4d6b]/35 border border-[#bce8fb] dark:border-[#0b5d81]/60 text-xs space-y-1">
+                            <div className="flex items-center justify-between font-bold text-[#076e9d] dark:text-[#81d7f8]">
+                              <span className="flex items-center gap-1.5">
+                                <BookOpen className="w-4 h-4 text-[#088ac1] dark:text-[#3dc3f3]" />
+                                Surah {habit.today_completion.surah_name || habit.last_surah_name}
+                              </span>
+                              <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#bce8fb] dark:bg-[#088ac1]/50 text-[#076e9d] dark:text-white font-extrabold">
+                                ✓ Recited
+                              </span>
+                            </div>
+                            <p className="text-[#088ac1] dark:text-[#3dc3f3] text-[11px] font-medium">
+                              Bookmark: Ayah {habit.today_completion.last_ayah_number || habit.today_completion.ayah_end || habit.last_ayah_number || 1}
                             </p>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
-                          {habit.last_surah_name ? (
+                            {habit.today_completion.notes && (
+                              <p className="text-[11px] text-slate-600 dark:text-slate-300 italic pt-1 border-t border-[#bce8fb]/60 dark:border-[#0b5d81]/40">
+                                "{habit.today_completion.notes}"
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
                             <p className="font-semibold text-[#076e9d] dark:text-[#81d7f8] flex items-center gap-1.5">
                               <span>🔖</span>
-                              <span>Bookmark: Surah {habit.last_surah_name}, Ayah {habit.last_ayah_number || 1}</span>
+                              <span>Surah {habit.last_surah_name} • Bookmark: Ayah {habit.last_ayah_number || 1}</span>
                             </p>
-                          ) : (
-                            <p className="text-slate-500 dark:text-slate-400">No bookmark saved yet</p>
-                          )}
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                            🎯 Daily Goal: {habit.target_juz_goal || 1.0} Juz / day
-                          </p>
-                        </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                              📖 Dedicated Surah recitation habit
+                            </p>
+                          </div>
+                        )
+                      ) : (
+                        /* General Daily Tilawah Habit Card */
+                        habit.today_completion ? (
+                          <div className="p-3 rounded-2xl bg-[#e1f3fd]/80 dark:bg-[#0f4d6b]/35 border border-[#bce8fb] dark:border-[#0b5d81]/60 text-xs space-y-1">
+                            <div className="flex items-center justify-between font-bold text-[#076e9d] dark:text-[#81d7f8]">
+                              <span className="flex items-center gap-1.5">
+                                <BookOpen className="w-4 h-4 text-[#088ac1] dark:text-[#3dc3f3]" />
+                                Surah {habit.today_completion.surah_name || habit.last_surah_name || 'Al-Baqarah'}
+                              </span>
+                              <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#bce8fb] dark:bg-[#088ac1]/50 text-[#076e9d] dark:text-white font-extrabold">
+                                {habit.today_completion.juz_count || (habit.today_completion.pages_read ? Number((habit.today_completion.pages_read / 20).toFixed(2)) : 1.0)} Juz
+                              </span>
+                            </div>
+                            <p className="text-[#088ac1] dark:text-[#3dc3f3] text-[11px] font-medium">
+                              Last read Ayah {habit.today_completion.last_ayah_number || habit.today_completion.ayah_end || habit.last_ayah_number || 1} • {habit.today_completion.pages_read || Math.round((habit.today_completion.juz_count || 1) * 20)} pages • Goal: {habit.target_juz_goal || 1.0} Juz
+                            </p>
+                            {habit.today_completion.notes && (
+                              <p className="text-[11px] text-slate-600 dark:text-slate-300 italic pt-1 border-t border-[#bce8fb]/60 dark:border-[#0b5d81]/40">
+                                "{habit.today_completion.notes}"
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                            {habit.last_surah_name ? (
+                              <p className="font-semibold text-[#076e9d] dark:text-[#81d7f8] flex items-center gap-1.5">
+                                <span>🔖</span>
+                                <span>Bookmark: Surah {habit.last_surah_name}, Ayah {habit.last_ayah_number || 1}</span>
+                              </p>
+                            ) : (
+                              <p className="text-slate-500 dark:text-slate-400">No bookmark saved yet</p>
+                            )}
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                              🎯 Daily Goal: {habit.target_juz_goal || 1.0} Juz / day
+                            </p>
+                          </div>
+                        )
                       )}
                     </div>
                   )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
@@ -10,6 +10,7 @@ import {
   Flame,
   Target,
   Plus,
+  Minus,
 } from 'lucide-react';
 import { QURAN_SURAHS, JUZ_PRESETS } from '../../data/quranData';
 import { habitApi } from '../../api/habitApi';
@@ -42,34 +43,99 @@ export const QuranSection = ({
     ? 1.0
     : 0.0;
 
+  const currentPages = completion?.pages_read !== undefined && completion?.pages_read !== null
+    ? completion.pages_read
+    : Math.round(todayJuzRead * 20);
+
+  const [customPagesInput, setCustomPagesInput] = useState(() => (currentPages > 0 ? String(currentPages) : ''));
+
+  useEffect(() => {
+    if (currentPages > 0) {
+      setCustomPagesInput(String(currentPages));
+    } else {
+      setCustomPagesInput('');
+    }
+  }, [currentPages]);
+
   const progressPercent = Math.min(100, Math.round((todayJuzRead / (targetGoal || 1.0)) * 100));
 
-  // Quick 1-tap preset log handler
+  // Quick 1-tap preset log handler (toggleable: click to select, click again to unclick)
   const handleQuickLog = async (presetValue) => {
     if (!quranHabit) return;
+    const isCurrentLogged = Math.abs(todayJuzRead - presetValue) < 0.01;
     setQuickLogging(true);
     try {
-      await habitApi.logDetails(quranHabit.id, {
-        date: getLocalDateString(),
-        surah_name: currentSurahObj.name,
-        last_surah_name: currentSurahObj.name,
-        last_surah_number: currentSurahObj.number,
-        last_ayah_number: currentAyah,
-        ayah_end: currentAyah,
-        juz_count: presetValue,
-        target_juz_goal: targetGoal,
-        pages_read: Math.round(presetValue * 20),
-        duration_minutes: 20,
-      });
+      if (isCurrentLogged) {
+        // Unclick / deselect: unmark completion for today
+        await habitApi.toggleHabit(quranHabit.id, getLocalDateString(), false);
+        showToast(
+          'Recitation Cleared',
+          'Recitation fraction unselected for today.',
+          'neutral'
+        );
+      } else {
+        await habitApi.logDetails(quranHabit.id, {
+          date: getLocalDateString(),
+          surah_name: currentSurahObj.name,
+          last_surah_name: currentSurahObj.name,
+          last_surah_number: currentSurahObj.number,
+          last_ayah_number: currentAyah,
+          ayah_end: currentAyah,
+          juz_count: presetValue,
+          target_juz_goal: targetGoal,
+          pages_read: Math.round(presetValue * 20),
+          duration_minutes: 20,
+        });
 
-      showToast(
-        'Qur’an Logged',
-        `MashaAllah! Recorded ${presetValue} Juz recitation for today.`
-      );
+        showToast(
+          'Qur’an Logged',
+          `MashaAllah! Recorded ${presetValue} Juz recitation for today.`
+        );
+      }
       if (onQuranUpdated) onQuranUpdated();
     } catch (e) {
       console.error('Failed to quick log quran:', e);
-      showToast('Error', 'Failed to log recitation.', 'error');
+      showToast('Error', 'Failed to update recitation.', 'error');
+    } finally {
+      setQuickLogging(false);
+    }
+  };
+
+  // Custom pages read logger
+  const handleSaveCustomPages = async (val) => {
+    const rawVal = val !== undefined ? val : customPagesInput;
+    const pagesVal = Math.max(0, parseInt(rawVal, 10) || 0);
+    if (!quranHabit) return;
+    setQuickLogging(true);
+    try {
+      if (pagesVal === 0) {
+        await habitApi.toggleHabit(quranHabit.id, { date: getLocalDateString(), is_completed: false });
+        showToast('Recitation Cleared', 'Recitation log cleared for today.', 'neutral');
+        setCustomPagesInput('');
+      } else {
+        const computedJuz = Number((pagesVal / 20.0).toFixed(2));
+        await habitApi.logDetails(quranHabit.id, {
+          date: getLocalDateString(),
+          surah_name: currentSurahObj.name,
+          last_surah_name: currentSurahObj.name,
+          last_surah_number: currentSurahObj.number,
+          last_ayah_number: currentAyah,
+          ayah_end: currentAyah,
+          pages_read: pagesVal,
+          juz_count: computedJuz,
+          target_juz_goal: targetGoal,
+          duration_minutes: Math.max(5, Math.round(pagesVal * 1.5)),
+        });
+        showToast(
+          'Qur’an Logged',
+          `MashaAllah! Recorded ${pagesVal} pages (${computedJuz} Juz) for today.`
+        );
+        setCustomPagesInput(String(pagesVal));
+      }
+      if (onQuranUpdated) onQuranUpdated();
+    } catch (e) {
+      console.error('Failed to log custom pages:', e);
+      showToast('Error', 'Failed to update recitation.', 'error');
     } finally {
       setQuickLogging(false);
     }
@@ -218,9 +284,9 @@ export const QuranSection = ({
             </div>
 
             {/* Quick 1-Tap Log Buttons */}
-            <div className="space-y-1">
+            <div className="space-y-1 mb-2.5">
               <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                1-Tap Quick Log:
+                1-Tap Quick Fractions:
               </span>
               <div className="grid grid-cols-4 gap-1.5">
                 {JUZ_PRESETS.map((preset) => {
@@ -233,7 +299,7 @@ export const QuranSection = ({
                       onClick={() => handleQuickLog(preset.value)}
                       className={`py-1.5 px-1 rounded-xl text-[11px] font-bold transition-all text-center cursor-pointer border ${
                         isCurrentLogged
-                          ? 'bg-[#088ac1] text-white border-[#088ac1] shadow-xs'
+                          ? 'bg-[#088ac1] text-white border-[#088ac1] shadow-xs ring-2 ring-[#3dc3f3]'
                           : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-[#e1f3fd] dark:hover:bg-[#0f4d6b]/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                       }`}
                       title={preset.desc}
@@ -242,6 +308,72 @@ export const QuranSection = ({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Custom Pages Read Input Row */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                <span className="flex items-center gap-1">
+                  <span>📖</span> Custom Pages Read:
+                </span>
+                <span className="text-[10px] font-semibold text-[#088ac1] dark:text-[#3dc3f3]">
+                  {customPagesInput ? `${customPagesInput} pages ≈ ${(parseInt(customPagesInput, 10) / 20).toFixed(2)} Juz` : 'Enter exact pages'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={quickLogging}
+                  onClick={() => {
+                    const nextP = Math.max(0, (parseInt(customPagesInput, 10) || currentPages || 0) - 1);
+                    setCustomPagesInput(String(nextP));
+                    handleSaveCustomPages(nextP);
+                  }}
+                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center transition-colors active:scale-95"
+                  title="Decrease 1 page"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+
+                <input
+                  type="number"
+                  min="0"
+                  max="604"
+                  value={customPagesInput}
+                  onChange={(e) => setCustomPagesInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveCustomPages();
+                    }
+                  }}
+                  placeholder="Pages (e.g. 5, 12)"
+                  className="w-full text-center px-2 py-1 rounded-xl border border-[#bce8fb] dark:border-[#0b5d81] bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-bold font-mono focus:ring-2 focus:ring-[#1eb4eb]"
+                />
+
+                <button
+                  type="button"
+                  disabled={quickLogging}
+                  onClick={() => {
+                    const nextP = (parseInt(customPagesInput, 10) || currentPages || 0) + 1;
+                    setCustomPagesInput(String(nextP));
+                    handleSaveCustomPages(nextP);
+                  }}
+                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center transition-colors active:scale-95"
+                  title="Increase 1 page"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  disabled={quickLogging || !customPagesInput}
+                  onClick={() => handleSaveCustomPages()}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#088ac1] to-[#076e9d] hover:from-[#1eb4eb] hover:to-[#088ac1] text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                >
+                  <span>Save</span>
+                </button>
               </div>
             </div>
           </div>

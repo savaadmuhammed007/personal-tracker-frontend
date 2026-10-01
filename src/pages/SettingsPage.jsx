@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Settings,
   User,
@@ -22,6 +23,9 @@ import {
   Smartphone,
   ShieldCheck,
   X,
+  LogOut,
+  Key,
+  Clock,
 } from 'lucide-react';
 import { settingsApi } from '../api/settingsApi';
 import { authApi } from '../api/authApi';
@@ -33,10 +37,11 @@ import { Button } from '../components/common/UIComponents';
 import { getHijriDate } from '../utils/hijri';
 
 export const SettingsPage = () => {
-  const { user, refreshProfile } = useAuth();
+  const navigate = useNavigate();
+  const { user, profile, logout, refreshProfile } = useAuth();
   const { theme, setTheme } = useTheme();
   const { showToast, playChime, triggerHaptic } = useNotification();
-  const { detectLocationGPS, isDetectingLocation, refreshPrayers } = usePrayers();
+  const { detectLocationGPS, isDetectingLocation, refreshPrayers, timetable, location } = usePrayers();
 
   // Browser Web Notification Permission State
   const [notificationPermission, setNotificationPermission] = useState(() => {
@@ -190,6 +195,8 @@ export const SettingsPage = () => {
   const [calcMethod, setCalcMethod] = useState('MWL');
   const [asrMethod, setAsrMethod] = useState('Standard');
   const [manualAdj, setManualAdj] = useState({ fajr: 0, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 });
+  const [savedManualAdj, setSavedManualAdj] = useState({ fajr: 0, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 });
+  const [liveTime, setLiveTime] = useState(() => new Date());
   const [hijriAdjustment, setHijriAdjustment] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [prayerNotifs, setPrayerNotifs] = useState(true);
@@ -197,6 +204,107 @@ export const SettingsPage = () => {
   const [taskNotifs, setTaskNotifs] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Live 1-second clock timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const activeTimezone = timezoneStr || location?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+  const formattedCurrentTime = (() => {
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+        timeZone: activeTimezone,
+      }).format(liveTime);
+    } catch {
+      return liveTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      });
+    }
+  })();
+
+  const formattedCurrentDate = (() => {
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: activeTimezone,
+      }).format(liveTime);
+    } catch {
+      return liveTime.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+  })();
+
+  const getAdjustedPrayerTime = (baseTimeStr, savedAdjustment = 0, currentAdjustment = 0) => {
+    if (!baseTimeStr) return '—';
+    try {
+      const match = baseTimeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+      if (!match) return baseTimeStr;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3]?.toUpperCase();
+
+      if (ampm === 'PM' && hours < 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+
+      const netDelta = (parseInt(currentAdjustment, 10) || 0) - (parseInt(savedAdjustment, 10) || 0);
+      let totalMinutes = hours * 60 + minutes + netDelta;
+      totalMinutes = (totalMinutes + 1440 * 10) % 1440;
+
+      let adjHours = Math.floor(totalMinutes / 60);
+      const adjMins = totalMinutes % 60;
+      const finalAmpm = adjHours >= 12 ? 'PM' : 'AM';
+      adjHours = adjHours % 12 || 12;
+
+      return `${String(adjHours).padStart(2, '0')}:${String(adjMins).padStart(2, '0')} ${finalAmpm}`;
+    } catch {
+      return baseTimeStr;
+    }
+  };
+
+  const getBasePrayerTime = (baseTimeStr, savedAdjustment = 0) => {
+    if (!baseTimeStr) return '—';
+    try {
+      const match = baseTimeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+      if (!match) return baseTimeStr;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3]?.toUpperCase();
+
+      if (ampm === 'PM' && hours < 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+
+      let totalMinutes = hours * 60 + minutes - (parseInt(savedAdjustment, 10) || 0);
+      totalMinutes = (totalMinutes + 1440 * 10) % 1440;
+
+      let adjHours = Math.floor(totalMinutes / 60);
+      const adjMins = totalMinutes % 60;
+      const finalAmpm = adjHours >= 12 ? 'PM' : 'AM';
+      adjHours = adjHours % 12 || 12;
+
+      return `${String(adjHours).padStart(2, '0')}:${String(adjMins).padStart(2, '0')} ${finalAmpm}`;
+    } catch {
+      return baseTimeStr;
+    }
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -211,7 +319,10 @@ export const SettingsPage = () => {
         setTimezoneStr(p.timezone || 'UTC');
         setCalcMethod(p.calculation_method || 'MWL');
         setAsrMethod(p.asr_method || 'Standard');
-        if (p.manual_adjustments) setManualAdj(p.manual_adjustments);
+        if (p.manual_adjustments) {
+          setManualAdj(p.manual_adjustments);
+          setSavedManualAdj(p.manual_adjustments);
+        }
         if (p.hijri_adjustment !== undefined && p.hijri_adjustment !== null) setHijriAdjustment(p.hijri_adjustment);
         setSoundEnabled(p.sound_enabled ?? true);
         setPrayerNotifs(p.prayer_notifications ?? true);
@@ -259,9 +370,10 @@ export const SettingsPage = () => {
         task_notifications: taskNotifs,
         theme,
       });
+      setSavedManualAdj(manualAdj);
       await refreshProfile();
       if (refreshPrayers) await refreshPrayers();
-      showToast('Settings Saved', 'Your preferences, location, and Hijri date adjustment have been updated.');
+      showToast('Settings Saved', 'Your preferences, location, and prayer adjustments have been updated.');
     } catch (err) {
       console.error('Failed to save settings:', err);
       showToast('Error', 'Failed to save settings.', 'error');
@@ -303,6 +415,12 @@ export const SettingsPage = () => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    showToast('Signed Out', 'You have been safely signed out.');
+    navigate('/login');
+  };
+
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Header */}
@@ -314,6 +432,37 @@ export const SettingsPage = () => {
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Configure prayer calculation methods, local coordinates, notifications, and data exports
         </p>
+      </div>
+
+      {/* Account Session & Sign Out Card */}
+      <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-soft flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-[#1eb4eb]/20 bg-[#1eb4eb]/5">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#088ac1] to-[#3dc3f3] text-white flex items-center justify-center font-bold text-lg shadow-picton-glow shrink-0">
+            {(user?.first_name || profile?.display_name || user?.username || 'U')[0].toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
+                {user?.first_name || profile?.display_name || user?.username || 'Active User'}
+              </h3>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 shrink-0">
+                Authenticated
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              @{user?.username || 'user'} {user?.email ? `• ${user.email}` : ''}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full sm:w-auto px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shrink-0"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Sign Out / Switch Account</span>
+        </button>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
@@ -428,13 +577,35 @@ export const SettingsPage = () => {
         </div>
 
 
-        {/* 2. Prayer Time Calculations */}
-        <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-soft space-y-4">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b pb-3 border-islamic-border-light/60 dark:border-islamic-border-dark/60">
-            <Compass className="w-5 h-5 text-amber-500" />
-            Prayer Calculation Method & School
-          </h3>
+        {/* 2. Prayer Time Calculations & Minute Adjustments */}
+        <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-soft space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 border-islamic-border-light/60 dark:border-islamic-border-dark/60">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Compass className="w-5 h-5 text-amber-500" />
+                Prayer Time Calculation & Adjustments
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Align prayer schedules with your local mosque timetable and astronomical calculations
+              </p>
+            </div>
 
+            {/* Current Time Badge */}
+            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-sm self-start sm:self-auto">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <div>
+                <div className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-emerald-400" />
+                  Live Current Time
+                </div>
+                <div className="text-sm font-black font-mono tracking-tight text-white">
+                  {formattedCurrentTime}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Authority & Madhhab Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -470,30 +641,122 @@ export const SettingsPage = () => {
             </div>
           </div>
 
-          {/* Manual Minute Adjustments */}
-          <div className="pt-2">
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-              Manual Minute Adjustments (+/- Minutes)
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-              {['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'].map((p) => (
-                <div key={p} className="text-center p-2 rounded-xl bg-islamic-subtle-light/40 dark:bg-islamic-subtle-dark/40 border border-slate-200 dark:border-slate-800">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
-                    {p}
-                  </span>
-                  <input
-                    type="number"
-                    value={manualAdj[p] || 0}
-                    onChange={(e) =>
-                      setManualAdj((prev) => ({
-                        ...prev,
-                        [p]: parseInt(e.target.value) || 0,
-                      }))
-                    }
-                    className="w-full text-center px-1.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-islamic-card-dark text-xs font-bold"
-                  />
-                </div>
-              ))}
+          {/* Manual Minute Adjustments Section with Live Clock & Prayer Cards */}
+          <div className="pt-2 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Manual Minute Adjustments (+/- Minutes)
+                </label>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Real-time preview of adjusted Adhan times based on your offsets
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setManualAdj({ fajr: 0, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 })
+                }
+                className="text-xs font-bold text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors self-start sm:self-auto"
+                title="Reset all minute offsets to 0"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset All to 0
+              </button>
+            </div>
+
+            {/* 6 Interactive Prayer Cards Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+              {[
+                { key: 'fajr', label: 'Fajr', ar: 'الفجر', icon: '🌅' },
+                { key: 'sunrise', label: 'Sunrise', ar: 'الشروق', icon: '☀️' },
+                { key: 'dhuhr', label: 'Dhuhr', ar: 'الظهر', icon: '🌞' },
+                { key: 'asr', label: 'Asr', ar: 'العصر', icon: '🌤️' },
+                { key: 'maghrib', label: 'Maghrib', ar: 'المغرب', icon: '🌇' },
+                { key: 'isha', label: 'Isha', ar: 'العشاء', icon: '🌙' },
+              ].map(({ key, label, ar, icon }) => {
+                const baseTimetableVal = timetable?.[label] || (label === 'Sunrise' ? timetable?.Sunrise : null);
+                const currentVal = manualAdj[key] || 0;
+                const savedVal = savedManualAdj[key] || 0;
+                const adjustedDisplay = getAdjustedPrayerTime(baseTimetableVal, savedVal, currentVal);
+                const baseDisplay = getBasePrayerTime(baseTimetableVal, savedVal);
+
+                return (
+                  <div
+                    key={key}
+                    className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-islamic-card-dark border border-islamic-border-light dark:border-islamic-border-dark shadow-sm hover:border-islamic-primary-500/50 transition-all flex flex-col justify-between"
+                  >
+                    {/* Top Info */}
+                    <div className="flex items-center justify-between gap-1 mb-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm">{icon}</span>
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100">{label}</span>
+                      </div>
+                      <span className="text-[10px] font-arabic text-slate-400 dark:text-slate-500 font-semibold">{ar}</span>
+                    </div>
+
+                    {/* Adjusted Time Highlight */}
+                    <div className="my-1 text-center bg-slate-50 dark:bg-slate-900/70 rounded-xl py-1.5 px-1 border border-slate-100 dark:border-slate-800">
+                      <div className="text-sm sm:text-base font-black tracking-tight text-slate-900 dark:text-white">
+                        {adjustedDisplay}
+                      </div>
+                      <div className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                        Base: <span className="font-semibold text-slate-600 dark:text-slate-400">{baseDisplay}</span>
+                      </div>
+                    </div>
+
+                    {/* Stepper Controls */}
+                    <div className="mt-1.5 space-y-1">
+                      <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 dark:text-slate-400">
+                        <span>Offset</span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded-full font-mono text-[9px] font-bold ${
+                            currentVal > 0
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+                              : currentVal < 0
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
+                              : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                          }`}
+                        >
+                          {currentVal > 0 ? `+${currentVal}m` : currentVal < 0 ? `${currentVal}m` : '0m'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setManualAdj((prev) => ({ ...prev, [key]: (prev[key] || 0) - 1 }))}
+                          className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center transition-colors active:scale-95"
+                          title="Decrease 1 min"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+
+                        <input
+                          type="number"
+                          value={manualAdj[key] ?? 0}
+                          onChange={(e) =>
+                            setManualAdj((prev) => ({
+                              ...prev,
+                              [key]: parseInt(e.target.value, 10) || 0,
+                            }))
+                          }
+                          className="w-full min-w-0 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-islamic-card-dark text-xs font-bold text-slate-900 dark:text-white font-mono focus:ring-1 focus:ring-islamic-primary-500"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => setManualAdj((prev) => ({ ...prev, [key]: (prev[key] || 0) + 1 }))}
+                          className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center transition-colors active:scale-95"
+                          title="Increase 1 min"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -7,6 +7,9 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      screens: {
+        'xs': '400px',
+      },
       colors: {
         'picton-blue': {
           '50': '#f0faff',
@@ -67,7 +70,8 @@ export default {
       },
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
-        arabic: ['Amiri', 'Scheherazade New', 'Traditional Arabic', 'serif'],
+        arabic: ['KoMomken', 'Amiri', 'Scheherazade New', 'Traditional Arabic', 'serif'],
+        youmi: ['KoMomken', 'Amiri', 'Traditional Arabic', 'serif'],
       },
       boxShadow: {
         'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',

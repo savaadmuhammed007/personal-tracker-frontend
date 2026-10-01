@@ -16,6 +16,8 @@ import {
   TrendingUp,
   Award,
   RefreshCw,
+  Plus,
+  Minus,
 } from 'lucide-react';
 import { QURAN_SURAHS, JUZ_PRESETS, QURAN_STATS } from '../data/quranData';
 import { habitApi } from '../api/habitApi';
@@ -42,7 +44,11 @@ export const QuranPage = () => {
       const localDate = getLocalDateString();
       const res = await habitApi.getHabits({ category: 'quran', date: localDate });
       const habitsList = Array.isArray(res?.data) ? res.data : res?.data?.results || [];
-      let habit = habitsList.find((h) => h.category === 'quran') || habitsList[0];
+      let habit =
+        habitsList.find((h) => h.category === 'quran' && !h.last_surah_number && h.target_juz_goal) ||
+        habitsList.find((h) => h.category === 'quran' && !h.last_surah_number) ||
+        habitsList.find((h) => h.category === 'quran') ||
+        habitsList[0];
 
       if (!habit) {
         // If no quran habit exists yet, create one
@@ -95,32 +101,94 @@ export const QuranPage = () => {
     ? 1.0
     : 0.0;
 
+  const currentPages = completion?.pages_read !== undefined && completion?.pages_read !== null
+    ? completion.pages_read
+    : Math.round(todayJuzRead * 20);
+
+  const [customPagesInput, setCustomPagesInput] = useState(() => (currentPages > 0 ? String(currentPages) : ''));
+
+  useEffect(() => {
+    if (currentPages > 0) {
+      setCustomPagesInput(String(currentPages));
+    } else {
+      setCustomPagesInput('');
+    }
+  }, [currentPages]);
+
   const progressPercent = Math.min(100, Math.round((todayJuzRead / (targetGoal || 1.0)) * 100));
 
-  // Quick 1-tap fraction logging
+  // Quick 1-tap fraction logging (toggleable: click to select, click again to unclick)
   const handleQuickLogFraction = async (presetValue) => {
     if (!quranHabit) return;
+    const isCurrent = Math.abs(todayJuzRead - presetValue) < 0.01;
     try {
-      await habitApi.logDetails(quranHabit.id, {
-        surah_name: currentSurahObj.name,
-        last_surah_name: currentSurahObj.name,
-        last_surah_number: currentSurahObj.number,
-        last_ayah_number: currentAyah,
-        ayah_end: currentAyah,
-        juz_count: presetValue,
-        target_juz_goal: targetGoal,
-        pages_read: Math.round(presetValue * 20),
-        duration_minutes: 20,
-      });
+      if (isCurrent) {
+        // Unclick / deselect: unmark completion for today
+        await habitApi.toggleHabit(quranHabit.id, getLocalDateString(), false);
+        showToast(
+          'Recitation Cleared',
+          'Recitation fraction unselected for today.',
+          'neutral'
+        );
+      } else {
+        await habitApi.logDetails(quranHabit.id, {
+          surah_name: currentSurahObj.name,
+          last_surah_name: currentSurahObj.name,
+          last_surah_number: currentSurahObj.number,
+          last_ayah_number: currentAyah,
+          ayah_end: currentAyah,
+          juz_count: presetValue,
+          target_juz_goal: targetGoal,
+          pages_read: Math.round(presetValue * 20),
+          duration_minutes: 20,
+        });
 
-      showToast(
-        'Qur’an Logged',
-        `MashaAllah! Recorded ${presetValue} Juz recitation for today.`
-      );
+        showToast(
+          'Qur’an Logged',
+          `MashaAllah! Recorded ${presetValue} Juz recitation for today.`
+        );
+      }
       fetchQuranData();
     } catch (e) {
       console.error('Failed to log quick fraction:', e);
-      showToast('Error', 'Failed to save recitation log.', 'error');
+      showToast('Error', 'Failed to update recitation log.', 'error');
+    }
+  };
+
+  // Custom pages read logger
+  const handleSaveCustomPages = async (val) => {
+    const rawVal = val !== undefined ? val : customPagesInput;
+    const pagesVal = Math.max(0, parseInt(rawVal, 10) || 0);
+    if (!quranHabit) return;
+    try {
+      if (pagesVal === 0) {
+        await habitApi.toggleHabit(quranHabit.id, { date: getLocalDateString(), is_completed: false });
+        showToast('Recitation Cleared', 'Recitation log cleared for today.', 'neutral');
+        setCustomPagesInput('');
+      } else {
+        const computedJuz = Number((pagesVal / 20.0).toFixed(2));
+        await habitApi.logDetails(quranHabit.id, {
+          date: getLocalDateString(),
+          surah_name: currentSurahObj.name,
+          last_surah_name: currentSurahObj.name,
+          last_surah_number: currentSurahObj.number,
+          last_ayah_number: currentAyah,
+          ayah_end: currentAyah,
+          pages_read: pagesVal,
+          juz_count: computedJuz,
+          target_juz_goal: targetGoal,
+          duration_minutes: Math.max(5, Math.round(pagesVal * 1.5)),
+        });
+        showToast(
+          'Qur’an Logged',
+          `MashaAllah! Recorded ${pagesVal} pages (${computedJuz} Juz) for today.`
+        );
+        setCustomPagesInput(String(pagesVal));
+      }
+      fetchQuranData();
+    } catch (e) {
+      console.error('Failed to log custom pages:', e);
+      showToast('Error', 'Failed to update recitation log.', 'error');
     }
   };
 
@@ -407,6 +475,70 @@ export const QuranPage = () => {
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Custom Pages Read Input Row */}
+            <div className="mt-3.5 pt-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                <span className="flex items-center gap-1.5">
+                  <span>📖</span> Custom Pages Read:
+                </span>
+                <span className="text-[11px] font-semibold text-[#088ac1] dark:text-[#3dc3f3]">
+                  {customPagesInput ? `${customPagesInput} pages ≈ ${(parseInt(customPagesInput, 10) / 20).toFixed(2)} Juz` : 'Enter exact pages read'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextP = Math.max(0, (parseInt(customPagesInput, 10) || currentPages || 0) - 1);
+                    setCustomPagesInput(String(nextP));
+                    handleSaveCustomPages(nextP);
+                  }}
+                  className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center transition-colors active:scale-95"
+                  title="Decrease 1 page"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+
+                <input
+                  type="number"
+                  min="0"
+                  max="604"
+                  value={customPagesInput}
+                  onChange={(e) => setCustomPagesInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveCustomPages();
+                    }
+                  }}
+                  placeholder="Pages (e.g. 5, 12, 20)"
+                  className="w-full text-center px-3 py-1.5 rounded-xl border border-[#bce8fb] dark:border-[#0b5d81] bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-bold font-mono focus:ring-2 focus:ring-[#1eb4eb]"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextP = (parseInt(customPagesInput, 10) || currentPages || 0) + 1;
+                    setCustomPagesInput(String(nextP));
+                    handleSaveCustomPages(nextP);
+                  }}
+                  className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center transition-colors active:scale-95"
+                  title="Increase 1 page"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!customPagesInput}
+                  onClick={() => handleSaveCustomPages()}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#088ac1] to-[#076e9d] hover:from-[#1eb4eb] hover:to-[#088ac1] text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                >
+                  <span>Save Pages</span>
+                </button>
               </div>
             </div>
           </div>

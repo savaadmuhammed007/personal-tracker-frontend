@@ -43,7 +43,7 @@ export const checkBackendHealth = async (overrideUrl) => {
   }
 };
 
-// Request interceptor: attach token if present (optional in single-user mode)
+// Request interceptor: attach JWT access token if present
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
@@ -55,10 +55,84 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: don't boot user to login screen on transient errors
+// Response interceptor: auto-refresh access token on 401 using refresh_token
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Check if error is 401 and request hasn't been retried yet
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/login') && !originalRequest.url?.includes('/auth/refresh') && !originalRequest.url?.includes('/auth/register')) {
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      if (refreshToken) {
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((token) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return api(originalRequest);
+            })
+            .catch((err) => Promise.reject(err));
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const refreshUrl = `${API_URL}/auth/refresh/`;
+          const res = await axios.post(refreshUrl, { refresh: refreshToken });
+          const newAccessToken = res.data.access;
+
+          localStorage.setItem('access_token', newAccessToken);
+          if (res.data.refresh) {
+            localStorage.setItem('refresh_token', res.data.refresh);
+          }
+
+          api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+          processQueue(null, newAccessToken);
+          return api(originalRequest);
+        } catch (refreshErr) {
+          processQueue(refreshErr, null);
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('user_data');
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+            window.location.href = '/login';
+          }
+          return Promise.reject(refreshErr);
+        } finally {
+          isRefreshing = false;
+        }
+      } else {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_data');
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+          window.location.href = '/login';
+        }
+      }
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 export default api;

@@ -223,7 +223,10 @@ export const HomePage = () => {
   const completedAwradCount = safeAwrad.filter((a) => a.is_completed).length;
   const completedHabitsCount = safeHabits.filter((h) => h.today_completion).length;
   const completedTasksCount = safeTasks.filter((t) => t.status === 'completed').length;
-  const quranHabit = safeHabits.find((h) => h.category === 'quran');
+  const quranHabit =
+    safeHabits.find((h) => h.category === 'quran' && !h.last_surah_number && h.target_juz_goal) ||
+    safeHabits.find((h) => h.category === 'quran' && !h.last_surah_number) ||
+    safeHabits.find((h) => h.category === 'quran');
   const quranCompleted = quranHabit?.today_completion ? 1 : 0;
 
   const quranBookmark = quranHabit?.today_completion?.surah_name

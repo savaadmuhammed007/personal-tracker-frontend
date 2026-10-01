@@ -1,13 +1,13 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { PrayerProvider } from './context/PrayerContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Layout } from './components/layout/Layout';
 
-// Direct Page Imports
+// Page Imports
 import { HomePage } from './pages/HomePage';
 import { QuranPage } from './pages/QuranPage';
 import { CalendarPage } from './pages/CalendarPage';
@@ -17,6 +17,53 @@ import { TasksPage } from './pages/TasksPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { MissedPage } from './pages/MissedPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+
+/**
+ * Route guard for authenticated user sessions.
+ * Shows sleek loading state during session validation and redirects unauthenticated users to /login.
+ */
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-islamic-bg-light dark:bg-islamic-bg-dark flex flex-col items-center justify-center space-y-4">
+        <div className="w-14 h-14 rounded-3xl bg-gradient-to-tr from-[#088ac1] to-[#3dc3f3] flex items-center justify-center text-white shadow-picton-glow animate-pulse">
+          <span className="text-3xl font-bold font-arabic">☪</span>
+        </div>
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-sans">
+          Loading your sanctuary...
+        </p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
+
+/**
+ * Route guard for public-only auth pages (Login, Register).
+ * Redirects already authenticated users to the home dashboard.
+ */
+const PublicOnlyRoute = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
 
 export function App() {
   return (
@@ -27,8 +74,32 @@ export function App() {
             <NotificationProvider>
               <BrowserRouter>
                 <Routes>
-                  {/* Direct App Routes - No Login/Auth Required */}
-                  <Route element={<Layout />}>
+                  {/* Public Authentication Routes */}
+                  <Route
+                    path="/login"
+                    element={
+                      <PublicOnlyRoute>
+                        <LoginPage />
+                      </PublicOnlyRoute>
+                    }
+                  />
+                  <Route
+                    path="/register"
+                    element={
+                      <PublicOnlyRoute>
+                        <RegisterPage />
+                      </PublicOnlyRoute>
+                    }
+                  />
+
+                  {/* Protected Application Workspace Routes */}
+                  <Route
+                    element={
+                      <ProtectedRoute>
+                        <Layout />
+                      </ProtectedRoute>
+                    }
+                  >
                     <Route path="/" element={<HomePage />} />
                     <Route path="/quran" element={<QuranPage />} />
                     <Route path="/calendar" element={<CalendarPage />} />
@@ -40,9 +111,7 @@ export function App() {
                     <Route path="/settings" element={<SettingsPage />} />
                   </Route>
 
-                  {/* Redirect any auth or unknown route straight to Home */}
-                  <Route path="/login" element={<Navigate to="/" replace />} />
-                  <Route path="/register" element={<Navigate to="/" replace />} />
+                  {/* Catch-all fallback */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </BrowserRouter>

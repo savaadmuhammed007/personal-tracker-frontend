@@ -3,14 +3,18 @@ import { Modal, Button } from '../common/UIComponents';
 import { TimePickerField } from '../common/TimePickerField';
 import { habitApi } from '../../api/habitApi';
 import { useNotification } from '../../context/NotificationContext';
+import { QURAN_SURAHS, JUZ_PRESETS } from '../../data/quranData';
 
 export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
   const { showToast } = useNotification();
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('custom');
+  const [category, setCategory] = useState('quran');
+  const [selectedSurahNumber, setSelectedSurahNumber] = useState('');
+  const [startingAyah, setStartingAyah] = useState(1);
+  const [targetJuzGoal, setTargetJuzGoal] = useState(1.0);
   const [frequency, setFrequency] = useState('daily');
   const [specificDays, setSpecificDays] = useState([4]); // Default to Friday (4)
-  const [duration, setDuration] = useState(15);
+  const [duration, setDuration] = useState(20);
   const [reminderTime, setReminderTime] = useState('07:00 AM');
   const [submitting, setSubmitting] = useState(false);
 
@@ -27,14 +31,21 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
   useEffect(() => {
     if (isOpen) {
       setName(habit?.name || '');
-      setCategory(habit?.category || 'custom');
+      setCategory(habit?.category || 'quran');
+      setSelectedSurahNumber(
+        habit?.last_surah_number !== undefined && habit?.last_surah_number !== null
+          ? String(habit.last_surah_number)
+          : ''
+      );
+      setStartingAyah(habit?.last_ayah_number || 1);
+      setTargetJuzGoal(habit?.target_juz_goal || 1.0);
       setFrequency(habit?.frequency || 'daily');
       setSpecificDays(
         Array.isArray(habit?.specific_days) && habit.specific_days.length > 0
           ? habit.specific_days
           : [4]
       );
-      setDuration(habit?.target_duration_minutes || 15);
+      setDuration(habit?.target_duration_minutes || 20);
       setReminderTime(habit?.reminder_time || '07:00 AM');
     }
   }, [isOpen, habit]);
@@ -54,6 +65,20 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
     }
   };
 
+  const handleSurahSelect = (surahNumStr) => {
+    setSelectedSurahNumber(surahNumStr);
+    if (surahNumStr) {
+      const num = parseInt(surahNumStr, 10);
+      const surahObj = QURAN_SURAHS.find((s) => s.number === num);
+      if (surahObj) {
+        // Auto-populate or update name if empty or generic
+        if (!name || name === 'Qur’an Recitation' || name.startsWith('Surah ') || name.startsWith('Qur’an')) {
+          setName(`Surah ${surahObj.name}`);
+        }
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -68,12 +93,32 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
       daysToSave = [];
     }
 
+    let surahName = '';
+    let surahNum = null;
+    if (category === 'quran' && selectedSurahNumber) {
+      const num = parseInt(selectedSurahNumber, 10);
+      const surahObj = QURAN_SURAHS.find((s) => s.number === num);
+      if (surahObj) {
+        surahName = surahObj.name;
+        surahNum = surahObj.number;
+      }
+    }
+
+    const finalTargetJuzGoal = category === 'quran'
+      ? (selectedSurahNumber ? null : (targetJuzGoal !== null && targetJuzGoal !== undefined ? parseFloat(targetJuzGoal) : null))
+      : 1.0;
+
     const payload = {
-      name,
+      name: name.trim(),
       category,
       frequency,
       specific_days: daysToSave,
       target_duration_minutes: parseInt(duration) || 15,
+      target_juz_goal: finalTargetJuzGoal,
+      last_surah_name: surahName,
+      last_surah_number: surahNum,
+      last_ayah_number: category === 'quran' && surahNum ? (parseInt(startingAyah, 10) || 1) : null,
+      icon: category === 'quran' ? 'BookOpen' : (habit?.icon || 'CheckCircle2'),
       reminder_time: reminderTime,
     };
 
@@ -96,10 +141,14 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
   };
 
   const selectedDayName = DAYS_OF_WEEK.find((d) => d.id === specificDays[0])?.full || 'Friday';
+  const selectedSurahObj = selectedSurahNumber
+    ? QURAN_SURAHS.find((s) => s.number === parseInt(selectedSurahNumber, 10))
+    : null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={habit?.id ? 'Edit Habit' : 'Create New Habit'}>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Habit Name */}
         <div>
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
             Habit Name
@@ -109,11 +158,16 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Surah Al-Kahf, Jummah Ghusl, Duha Prayer"
+            placeholder={
+              category === 'quran'
+                ? 'e.g. Surah Al-Kahf (Fridays), Daily Qur’an Tilawah, Surah Al-Mulk'
+                : 'e.g. Duha Prayer, Morning Adhkar, Daily Sadaqah'
+            }
             className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-[#1eb4eb]"
           />
         </div>
 
+        {/* Category & Frequency Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -121,15 +175,22 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
             </label>
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-[#1eb4eb]"
+              onChange={(e) => {
+                const newCat = e.target.value;
+                setCategory(newCat);
+                if (newCat === 'quran' && !name) {
+                  setName('Qur’an Recitation');
+                }
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-[#1eb4eb]"
             >
-              <option value="sunnah">Sunnah Prayers & Acts</option>
-              <option value="dhikr">Adhkar / Dhikr</option>
-              <option value="sadaqah">Sadaqah & Charity</option>
-              <option value="study">Islamic Study</option>
-              <option value="health">Physical Health</option>
-              <option value="custom">Personal Goal</option>
+              <option value="quran">📖 Noble Qur’an & Tilawah</option>
+              <option value="sunnah">🤲 Sunnah Prayers & Acts</option>
+              <option value="dhikr">📿 Adhkar / Dhikr</option>
+              <option value="sadaqah">💖 Sadaqah & Charity</option>
+              <option value="study">📚 Islamic Study & Knowledge</option>
+              <option value="health">🏃 Physical Health</option>
+              <option value="custom">🎯 Personal Goal</option>
             </select>
           </div>
 
@@ -155,6 +216,129 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
             </select>
           </div>
         </div>
+
+        {/* Dedicated Quran Specific Section: Surah Selector, Starting Ayah, and Reading Goal */}
+        {category === 'quran' && (
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-[#e1f3fd]/80 dark:bg-[#0f4d6b]/25 border border-[#bce8fb] dark:border-[#0b5d81]/60 space-y-3 animate-fade-in">
+            {/* Surah Dropdown Picker */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-[#076e9d] dark:text-[#81d7f8]">
+                  📖 Which Surah is this habit for?
+                </label>
+                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                  114 Surahs
+                </span>
+              </div>
+              <select
+                value={selectedSurahNumber}
+                onChange={(e) => handleSurahSelect(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#bce8fb] dark:border-[#0b5d81] bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-[#1eb4eb]"
+              >
+                <option value="">✨ General Tilawah / Whole Qur’an Progression</option>
+                <optgroup label="🌟 Frequently Recited & Virtuous Surahs">
+                  <option value="18">18. Surah Al-Kahf (الكهف) — Friday Recitation</option>
+                  <option value="67">67. Surah Al-Mulk (الملك) — Nightly Protection</option>
+                  <option value="36">36. Surah Ya-Sin (يس) — Heart of the Qur'an</option>
+                  <option value="56">56. Surah Al-Waqi'ah (الواقعة) — Surah of Provision</option>
+                  <option value="55">55. Surah Ar-Rahman (الرحمن) — Favors of Lord</option>
+                  <option value="2">2. Surah Al-Baqarah (البقرة) — Protection & Blessing</option>
+                  <option value="1">1. Surah Al-Fatihah (الفاتحة) — The Opening</option>
+                </optgroup>
+                <optgroup label="📜 Complete 114 Surahs (Surah 1 to 114)">
+                  {QURAN_SURAHS.map((s) => (
+                    <option key={s.number} value={s.number}>
+                      {s.number}. Surah {s.name} ({s.arabicName}) — {s.ayahCount} Ayahs • {s.type}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+
+            {/* If Specific Surah is selected: Bookmark info & Starting Ayah */}
+            {selectedSurahObj ? (
+              <div className="space-y-2 pt-1 border-t border-[#bce8fb]/60 dark:border-[#0b5d81]/40">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#076e9d] dark:text-[#81d7f8] mb-1">
+                      Starting Verse / Ayah Bookmark
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={selectedSurahObj.ayahCount}
+                      value={startingAyah}
+                      onChange={(e) => setStartingAyah(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-[#bce8fb] dark:border-[#0b5d81] bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-[#1eb4eb]"
+                      placeholder="e.g. 1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#076e9d] dark:text-[#81d7f8] mb-1">
+                      Surah Information
+                    </label>
+                    <div className="px-3 py-2 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-[#bce8fb]/60 dark:border-[#0b5d81]/40 text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-between">
+                      <span>{selectedSurahObj.ayahCount} Total Ayahs</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#bce8fb] dark:bg-[#0f4d6b] text-[#076e9d] dark:text-[#81d7f8]">
+                        {selectedSurahObj.type}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white/60 dark:bg-slate-800/60 border border-[#bce8fb]/50 dark:border-[#0b5d81]/40 text-[11px] text-[#076e9d] dark:text-[#81d7f8] flex items-center gap-1.5 font-medium">
+                  <span>✨</span>
+                  <span>Specific Surah habit — tracked as a dedicated recitation habit (does not count as daily Juz Tilawah goal).</span>
+                </div>
+              </div>
+            ) : (
+              /* Reading Goal (Juz) for General Tilawah with Interactive Preset Buttons */
+              <div className="pt-1 border-t border-[#bce8fb]/60 dark:border-[#0b5d81]/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-[#076e9d] dark:text-[#81d7f8]">
+                    Daily Tilawah Target (Juz)
+                  </label>
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                    {targetJuzGoal ? `${targetJuzGoal} Juz (~${Math.round(targetJuzGoal * 20)} pages)` : 'No goal selected (Optional)'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {JUZ_PRESETS.map((preset) => {
+                    const isSelected =
+                      targetJuzGoal !== null &&
+                      targetJuzGoal !== undefined &&
+                      Math.abs(targetJuzGoal - preset.value) < 0.01;
+                    return (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            // Click once more unclicks / deselects that button
+                            setTargetJuzGoal(null);
+                          } else {
+                            setTargetJuzGoal(preset.value);
+                          }
+                        }}
+                        className={`py-2 px-1.5 rounded-xl text-xs font-bold transition-all text-center cursor-pointer border ${
+                          isSelected
+                            ? 'bg-[#088ac1] text-white border-[#088ac1] shadow-md shadow-[#088ac1]/30 ring-2 ring-[#3dc3f3]'
+                            : 'bg-white dark:bg-slate-800 hover:bg-[#e1f3fd] dark:hover:bg-[#0f4d6b]/40 border-[#bce8fb] dark:border-[#0b5d81] text-slate-700 dark:text-slate-300'
+                        }`}
+                        title={preset.desc}
+                      >
+                        <span>{preset.label}</span>
+                        <span className="block text-[9px] opacity-75 font-normal">{preset.value} Juz</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Which Day of the Week Picker (for Weekly Once & Specific Days) */}
         {(frequency === 'weekly_once' || frequency === 'weekly_target' || frequency === 'specific_days') && (
@@ -204,6 +388,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
           </div>
         )}
 
+        {/* Target Duration & Clock Reminder Picker */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -227,6 +412,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
           />
         </div>
 
+        {/* Action Buttons */}
         <div className="flex items-center justify-end gap-2 pt-2">
           <Button variant="ghost" onClick={onClose}>
             Cancel
@@ -239,3 +425,5 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
     </Modal>
   );
 };
+
+export default HabitFormModal;

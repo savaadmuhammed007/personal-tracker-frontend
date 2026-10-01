@@ -55,8 +55,14 @@ export const QuranLogModal = ({ isOpen, onClose, habit, onSaved }) => {
   };
 
   const handleJuzPresetSelect = (presetVal) => {
-    setJuzCount(presetVal);
-    setPagesRead(Math.round(presetVal * 20));
+    if (juzCount !== null && Math.abs(juzCount - presetVal) < 0.01) {
+      // Unclick / deselect
+      setJuzCount(0);
+      setPagesRead(0);
+    } else {
+      setJuzCount(presetVal);
+      setPagesRead(Math.round(presetVal * 20));
+    }
   };
 
   const handlePagesChange = (pages) => {
