@@ -141,6 +141,13 @@ export const LoginPage = () => {
             </div>
           )}
 
+          {loading && (
+            <div className="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-900 text-sky-700 dark:text-sky-300 text-xs flex items-center justify-center gap-2 animate-pulse">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#088ac1] dark:text-[#3dc3f3]" />
+              <span>Connecting to cloud database & waking up server...</span>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-3.5">
             {/* Username or Email */}
             <div>

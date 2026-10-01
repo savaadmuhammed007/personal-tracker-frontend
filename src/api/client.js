@@ -23,17 +23,29 @@ export const API_URL = getActiveBackendUrl();
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 45000, // 45 seconds to gracefully accommodate Render free-tier cold starts
+  timeout: 60000, // 60 seconds to gracefully accommodate cloud cold starts
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
+export const warmupBackend = async () => {
+  try {
+    const target = API_URL.endsWith('/api') ? API_URL.replace(/\/api$/, '/api/') : `${API_URL}/`;
+    await axios.get(target, { timeout: 10000 });
+  } catch {}
+};
+
+// Proactively warm up cloud backend on initial bundle load
+if (typeof window !== 'undefined') {
+  setTimeout(warmupBackend, 100);
+}
+
 export const checkBackendHealth = async (overrideUrl) => {
   const target = overrideUrl || API_URL;
   const start = Date.now();
   try {
-    const res = await axios.get(`${target}/auth/me/`, { timeout: 8000 });
+    const res = await axios.get(`${target}/auth/me/`, { timeout: 12000 });
     return { ok: true, status: res.status, latency: Date.now() - start, target };
   } catch (err) {
     if (err.response && (err.response.status === 200 || err.response.status === 401)) {
