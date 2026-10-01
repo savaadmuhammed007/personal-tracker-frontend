@@ -7,30 +7,26 @@ import { getLocalDateString } from '../../utils/dateUtils';
 export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, onOpenQuranModal, onOpenAddModal }) => {
   const { showToast } = useNotification();
   const [pendingHabitIds, setPendingHabitIds] = useState(new Set());
-  const safeHabits = Array.isArray(habitsList) ? habitsList : [];
-  const nonQuranHabits = safeHabits.filter((h) => h.category !== 'quran');
+  const safeHabits = (Array.isArray(habitsList) ? habitsList : []).filter((h) => h && h.is_active !== false);
 
-  // Convert JS Sunday(0)..Saturday(6) to 0=Mon..6=Sun
+  // Convert JS Sunday(0)..Saturday(6) to Python/ISO standard 0=Mon..6=Sun
   const todayPyWeekday = (new Date().getDay() + 6) % 7;
 
   const isHabitScheduledForToday = (h) => {
-    if (h.is_scheduled_today !== undefined && h.is_scheduled_today !== null) {
-      return h.is_scheduled_today;
-    }
-    const freq = h.frequency;
+    const freq = h.frequency || 'daily';
     const spec = Array.isArray(h.specific_days) ? h.specific_days : [];
+
     if (freq === 'daily') return true;
-    if (freq === 'weekdays') return todayPyWeekday < 5;
+    if (freq === 'weekdays') return todayPyWeekday < 5; // Monday to Friday (0..4)
     if (freq === 'weekly_once' || freq === 'weekly_target' || freq === 'specific_days') {
       if (spec.length > 0) return spec.includes(todayPyWeekday);
-      return todayPyWeekday === 4; // default Friday
+      return todayPyWeekday === 4; // Default Friday (4)
     }
     return true;
   };
 
-  const todayHabits = nonQuranHabits.filter(
-    (h) => isHabitScheduledForToday(h) || Boolean(h.today_completion)
-  );
+  // Show all scheduled habits for today (including Qur'an habits), strictly for today's day
+  const todayHabits = safeHabits.filter((h) => isHabitScheduledForToday(h));
 
   const handleToggle = async (habit) => {
     if (pendingHabitIds.has(habit.id)) return;
@@ -64,7 +60,24 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
     }
   };
 
-  const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const getCategoryBadge = (category) => {
+    switch (category) {
+      case 'quran':
+        return { label: '📖 Qur’an', color: 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800' };
+      case 'sunnah':
+        return { label: '✨ Sunnah', color: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' };
+      case 'dhikr':
+        return { label: '📿 Dhikr', color: 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800' };
+      case 'sadaqah':
+        return { label: '🤲 Sadaqah', color: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' };
+      case 'study':
+        return { label: '📚 Study', color: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' };
+      case 'health':
+        return { label: '💪 Health', color: 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800' };
+      default:
+        return { label: category, color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/60 dark:border-slate-700/60' };
+    }
+  };
 
   return (
     <div className="mb-8">
@@ -109,6 +122,7 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
           {todayHabits.map((habit) => {
             const isDone = Boolean(habit.today_completion);
             const isQuran = habit.category === 'quran';
+            const catBadge = getCategoryBadge(habit.category);
 
             let scheduleText = 'Every Day';
             if (habit.frequency === 'weekdays') scheduleText = 'Weekdays';
@@ -119,98 +133,114 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
               scheduleText = habit.specific_days.map((d) => DAY_NAMES[d]).join(', ');
             }
 
-          let compTime = null;
-          if (habit.today_completion?.completed_at) {
-            try {
-              const dt = new Date(habit.today_completion.completed_at);
-              compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            } catch (e) {
-              compTime = null;
+            let compTime = null;
+            if (habit.today_completion?.completed_at) {
+              try {
+                const dt = new Date(habit.today_completion.completed_at);
+                compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              } catch (e) {
+                compTime = null;
+              }
             }
-          }
 
-          return (
-            <div
-              key={habit.id}
-              className={`rounded-2xl p-4 transition-all duration-200 border flex flex-col justify-between ${
-                isDone
-                  ? 'bg-[#e1f3fd]/70 dark:bg-[#0f4d6b]/25 border-[#bce8fb] dark:border-[#0b5d81]'
-                  : 'glass-card glass-card-hover border-islamic-border-light dark:border-islamic-border-dark'
-              }`}
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      {habit.category}
-                    </span>
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-                      {scheduleText}
-                    </span>
-                  </div>
-                  {habit.current_streak > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900 shrink-0">
-                      <Flame className="w-3 h-3 fill-amber-500 text-amber-500" />
-                      {habit.current_streak}d
-                    </span>
-                  )}
-                </div>
-
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                  {habit.name}
-                </h4>
-
-                {habit.today_completion?.notes && (
-                  <p className="text-xs text-[#076e9d] dark:text-[#3dc3f3] font-medium mt-1 truncate">
-                    {habit.today_completion.notes}
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between gap-2">
+            return (
+              <div
+                key={habit.id}
+                className={`rounded-2xl p-4 transition-all duration-200 border flex flex-col justify-between ${
+                  isDone
+                    ? 'bg-[#e1f3fd]/70 dark:bg-[#0f4d6b]/25 border-[#bce8fb] dark:border-[#0b5d81]'
+                    : 'glass-card glass-card-hover border-islamic-border-light dark:border-islamic-border-dark'
+                }`}
+              >
                 <div>
-                  {isDone ? (
-                    <span className="text-xs font-semibold text-[#076e9d] dark:text-[#3dc3f3] flex items-center gap-1">
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      {compTime ? `at ${compTime}` : 'Completed'}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                      {isQuran ? `${habit.target_juz_goal || 1.0} Juz goal` : `${habit.target_duration_minutes}m target`}
-                    </span>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${catBadge.color}`}>
+                        {catBadge.label}
+                      </span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                        {scheduleText}
+                      </span>
+                    </div>
+                    {habit.current_streak > 0 && (
+                      <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900 shrink-0">
+                        <Flame className="w-3 h-3 fill-amber-500 text-amber-500" />
+                        {habit.current_streak}d
+                      </span>
+                    )}
+                  </div>
+
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    {habit.name}
+                  </h4>
+
+                  {/* Quran Bookmark / Goal info if applicable */}
+                  {isQuran && (
+                    <div className="mt-1 text-[11px] text-[#088ac1] dark:text-[#3dc3f3] font-medium flex items-center gap-1">
+                      <span>🔖</span>
+                      <span className="truncate">
+                        {habit.today_completion?.surah_name
+                          ? `Surah ${habit.today_completion.surah_name} (v.${habit.today_completion.last_ayah_number || habit.today_completion.ayah_end || 1})`
+                          : habit.last_surah_name
+                          ? `Surah ${habit.last_surah_name} (v.${habit.last_ayah_number || 1})`
+                          : `${habit.target_juz_goal || 1.0} Juz goal`}
+                      </span>
+                    </div>
+                  )}
+
+                  {habit.today_completion?.notes && (
+                    <p className="text-xs text-[#076e9d] dark:text-[#3dc3f3] font-medium mt-1 truncate">
+                      {habit.today_completion.notes}
+                    </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  {isQuran && (
-                    <button
-                      onClick={() => onOpenQuranModal(habit)}
-                      className="p-1.5 rounded-lg border border-[#bce8fb] dark:border-[#0b5d81] text-[#088ac1] dark:text-[#3dc3f3] hover:bg-[#e1f3fd] dark:hover:bg-[#0f4d6b]/40 transition-colors cursor-pointer"
-                      title="Log Qur'an reading & bookmark"
-                    >
-                      <BookOpen className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between gap-2">
+                  <div>
+                    {isDone ? (
+                      <span className="text-xs font-semibold text-[#076e9d] dark:text-[#3dc3f3] flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        {compTime ? `at ${compTime}` : 'Completed'}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                        {isQuran ? `${habit.target_juz_goal || 1.0} Juz goal` : `${habit.target_duration_minutes}m target`}
+                      </span>
+                    )}
+                  </div>
 
-                  <button
-                    disabled={pendingHabitIds.has(habit.id)}
-                    onClick={() => handleToggle(habit)}
-                    className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                      pendingHabitIds.has(habit.id) ? 'opacity-70 cursor-wait' : ''
-                    } ${
-                      isDone
-                        ? 'bg-[#088ac1] text-white shadow-xs'
-                        : 'border-2 border-slate-300 dark:border-slate-600 hover:border-[#1eb4eb]'
-                    }`}
-                  >
-                    {isDone && <Check className="w-4 h-4 stroke-[3]" />}
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {isQuran && onOpenQuranModal && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenQuranModal(habit)}
+                        className="p-1.5 rounded-lg border border-[#bce8fb] dark:border-[#0b5d81] text-[#088ac1] dark:text-[#3dc3f3] hover:bg-[#e1f3fd] dark:hover:bg-[#0f4d6b]/40 transition-colors cursor-pointer"
+                        title="Log Qur'an reading & bookmark"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={pendingHabitIds.has(habit.id)}
+                      onClick={() => handleToggle(habit)}
+                      className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                        pendingHabitIds.has(habit.id) ? 'opacity-70 cursor-wait' : ''
+                      } ${
+                        isDone
+                          ? 'bg-[#088ac1] text-white shadow-xs'
+                          : 'border-2 border-slate-300 dark:border-slate-600 hover:border-[#1eb4eb]'
+                      }`}
+                    >
+                      {isDone && <Check className="w-4 h-4 stroke-[3]" />}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

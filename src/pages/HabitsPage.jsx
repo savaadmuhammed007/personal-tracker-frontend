@@ -179,7 +179,7 @@ export const HabitsPage = () => {
 
   const filteredHabits = habits.filter((h) => {
     if (selectedCategory === 'all') return true;
-    if (selectedCategory === 'today') return isHabitScheduledToday(h) || Boolean(h.today_completion);
+    if (selectedCategory === 'today') return isHabitScheduledToday(h);
     return h.category === selectedCategory;
   });
 
