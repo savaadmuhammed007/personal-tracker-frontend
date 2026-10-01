@@ -134,7 +134,14 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
       onClose();
     } catch (e) {
       console.error('Failed to save habit:', e);
-      showToast('Error', 'Failed to save habit.', 'error');
+      const serverMsg = e.response?.data
+        ? (typeof e.response.data === 'string'
+            ? e.response.data
+            : Object.entries(e.response.data)
+                .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+                .join(' | '))
+        : 'Failed to save habit.';
+      showToast('Error', serverMsg || 'Failed to save habit.', 'error');
     } finally {
       setSubmitting(false);
     }
