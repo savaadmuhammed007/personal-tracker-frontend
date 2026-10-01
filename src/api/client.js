@@ -5,15 +5,15 @@ import axios from 'axios';
 // 2. In dev mode, use '/api' to leverage Vite's proxy (works on both localhost and mobile LAN)
 // 3. In production, use VITE_API_URL or fallback to Render cloud
 export const getActiveBackendUrl = () => {
-  const saved = localStorage.getItem('active_backend_target');
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('active_backend_target') : null;
   if (saved === 'cloud') {
     return 'https://personal-tracker-backend-mr9z.onrender.com/api';
   }
-  if (import.meta.env.DEV && saved === 'local') {
+  if (saved === 'local') {
     return 'http://127.0.0.1:8000/api';
-  }
-  if (import.meta.env.DEV) {
-    return '/api';
   }
   const prodUrl = import.meta.env.VITE_API_URL || 'https://personal-tracker-backend-mr9z.onrender.com';
   return prodUrl.endsWith('/api') ? prodUrl : `${prodUrl.replace(/\/$/, '')}/api`;

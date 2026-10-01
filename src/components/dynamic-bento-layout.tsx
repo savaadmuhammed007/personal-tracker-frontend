@@ -101,8 +101,9 @@ const DEFAULT_ITEMS: BentoItem[] = [
 ];
 
 /* ─── Small ring chart for metric visualization ─── */
-const MetricRing = ({ value, color, size = 26 }: { value: string; color: string; size?: number }) => {
-  const numVal = parseFloat(value.replace(/[^0-9.]/g, ""));
+const MetricRing = ({ value, color, size = 26 }: { value: string | number; color: string; size?: number }) => {
+  const strVal = typeof value === 'string' ? value : String(value ?? '');
+  const numVal = parseFloat(strVal.replace(/[^0-9.]/g, ''));
   const pct = isNaN(numVal) ? 65 : numVal > 100 ? 65 : numVal;
   const r = (size - 4) / 2;
   const circ = 2 * Math.PI * r;

@@ -42,7 +42,7 @@ export const LoginPage = () => {
     try {
       await login(username.trim(), password);
       showToast('Welcome Back', `Alhamdulillah! Signed in successfully.`);
-      window.location.href = '/';
+      navigate('/', { replace: true });
     } catch (err) {
       console.error('Login error:', err);
       const detail =
@@ -61,7 +61,7 @@ export const LoginPage = () => {
     try {
       await ownerLogin();
       showToast('Welcome Savaad', 'Signed in as Savaad Muhammed (Main Account).');
-      window.location.href = '/';
+      navigate('/', { replace: true });
     } catch (err) {
       console.error('Owner login failed:', err);
       const detail =
@@ -79,7 +79,7 @@ export const LoginPage = () => {
     try {
       await demoLogin();
       showToast('Demo Mode', 'Signed in as Demo User with preview data.');
-      window.location.href = '/';
+      navigate('/', { replace: true });
     } catch (err) {
       console.error('Demo login failed:', err);
       const detail =
