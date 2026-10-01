@@ -26,6 +26,7 @@ import { RegisterPage } from './pages/RegisterPage';
  */
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
 
   if (isLoading) {
     return (
@@ -40,7 +41,7 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !token) {
     return <Navigate to="/login" replace />;
   }
 
@@ -53,12 +54,13 @@ const ProtectedRoute = ({ children }) => {
  */
 const PublicOnlyRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
 
   if (isLoading) {
     return null;
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated || token) {
     return <Navigate to="/" replace />;
   }
 

@@ -158,7 +158,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const isAuthenticated = Boolean(token && user);
+  const isAuthenticated = Boolean(
+    (token || (typeof localStorage !== 'undefined' && localStorage.getItem('access_token'))) &&
+    (user || (typeof localStorage !== 'undefined' && localStorage.getItem('user_data')))
+  );
 
   return (
     <AuthContext.Provider
