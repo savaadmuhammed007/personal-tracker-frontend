@@ -46,30 +46,34 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-lg' 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="min-h-screen px-3 sm:px-4 py-4 text-center flex items-center justify-center">
-        {/* Backdrop */}
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-          onClick={onClose}
-        />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 overscroll-contain overflow-hidden">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-fade-in"
+        onClick={onClose}
+      />
 
-        {/* Modal Box */}
-        <div
-          className={`inline-block w-full ${maxWidth} max-h-[92vh] overflow-y-auto p-4 sm:p-6 my-auto text-left align-middle transition-all transform bg-white dark:bg-islamic-card-dark rounded-2xl sm:rounded-3xl shadow-2xl border border-islamic-border-light dark:border-islamic-border-dark relative z-10 animate-slide-up`}
-        >
-          <div className="flex items-center justify-between pb-3.5 border-b border-islamic-border-light/60 dark:border-islamic-border-dark/60 sticky top-0 bg-white/95 dark:bg-islamic-card-dark/95 backdrop-blur-sm z-20">
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              {title}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-islamic-subtle-light dark:hover:bg-islamic-subtle-dark transition-colors"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="mt-4">{children}</div>
+      {/* Modal Box */}
+      <div
+        className={`relative w-full ${maxWidth} max-h-[88dvh] sm:max-h-[85vh] bg-white dark:bg-islamic-card-dark rounded-3xl shadow-2xl border border-islamic-border-light dark:border-islamic-border-dark flex flex-col z-10 animate-scale-up overflow-hidden my-auto`}
+      >
+        {/* Sticky Header */}
+        <div className="px-4 sm:px-6 py-3.5 border-b border-islamic-border-light/60 dark:border-islamic-border-dark/60 flex items-center justify-between shrink-0 bg-white/95 dark:bg-islamic-card-dark/95 backdrop-blur-sm z-10">
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            {title}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-islamic-subtle-light dark:hover:bg-islamic-subtle-dark transition-colors cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
+          {children}
         </div>
       </div>
     </div>

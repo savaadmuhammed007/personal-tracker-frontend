@@ -19,6 +19,8 @@ import { useNotification } from '../context/NotificationContext';
 import { Button } from '../components/common/UIComponents';
 import { getLocalDateString } from '../utils/dateUtils';
 
+const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const CACHE_HABITS_PAGE_KEY = 'cached_habits_page';
 
 export const HabitsPage = () => {
@@ -161,14 +163,25 @@ export const HabitsPage = () => {
     { id: 'custom', label: 'Personal Goals' },
   ];
 
-  const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const todayPyWeekday = (new Date().getDay() + 6) % 7;
+  const parseSpecificDays = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.map(Number).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) return parsed.map(Number).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+      } catch {}
+      return val.split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+    }
+    if (typeof val === 'number' && !isNaN(val) && val >= 0 && val <= 6) return [val];
+    return [];
+  };
 
   const isHabitScheduledToday = (h) => {
+    if (!h) return false;
     if (h.is_scheduled_today !== undefined && h.is_scheduled_today !== null) return Boolean(h.is_scheduled_today);
-    const freq = h.frequency;
-    const spec = (Array.isArray(h.specific_days) ? h.specific_days : []).map(Number).filter((n) => !isNaN(n));
+    const freq = h.frequency || 'daily';
+    const spec = parseSpecificDays(h.specific_days);
     if (freq === 'daily') return true;
     if (freq === 'weekdays') return todayPyWeekday < 5;
     if (freq === 'weekly_once' || freq === 'weekly_target' || freq === 'specific_days') {
@@ -282,11 +295,11 @@ export const HabitsPage = () => {
             if (habit.frequency === 'weekdays') {
               freqLabel = 'Weekdays (Mon-Fri)';
             } else if (habit.frequency === 'weekly_once' || habit.frequency === 'weekly_target') {
-              const spec = (Array.isArray(habit.specific_days) ? habit.specific_days : []).map(Number).filter((n) => !isNaN(n));
+              const spec = parseSpecificDays(habit.specific_days);
               const dayIdx = spec.length > 0 ? spec[0] : 4;
               freqLabel = `Every ${DAY_NAMES[dayIdx] || 'Friday'}`;
             } else if (habit.frequency === 'specific_days') {
-              const spec = (Array.isArray(habit.specific_days) ? habit.specific_days : []).map(Number).filter((n) => !isNaN(n));
+              const spec = parseSpecificDays(habit.specific_days);
               if (spec.length > 0) {
                 freqLabel = spec.map((d) => (DAY_NAMES_SHORT[d] || 'Day')).join(', ');
               } else {
@@ -368,7 +381,7 @@ export const HabitsPage = () => {
                     <span>•</span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" />
-                      {habit.target_duration_minutes}m target
+                      {habit.target_duration_minutes || 20}m target
                     </span>
                   </div>
 

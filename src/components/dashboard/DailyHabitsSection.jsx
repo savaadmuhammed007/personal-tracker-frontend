@@ -15,12 +15,27 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
   // Convert JS Sunday(0)..Saturday(6) to Python/ISO standard 0=Mon..6=Sun
   const todayPyWeekday = (new Date().getDay() + 6) % 7;
 
+  const parseSpecificDays = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.map(Number).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) return parsed.map(Number).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+      } catch {}
+      return val.split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+    }
+    if (typeof val === 'number' && !isNaN(val) && val >= 0 && val <= 6) return [val];
+    return [];
+  };
+
   const isHabitScheduledForToday = (h) => {
+    if (!h) return false;
     if (h.is_scheduled_today !== undefined && h.is_scheduled_today !== null) {
       return Boolean(h.is_scheduled_today);
     }
     const freq = h.frequency || 'daily';
-    const spec = (Array.isArray(h.specific_days) ? h.specific_days : []).map(Number).filter((n) => !isNaN(n));
+    const spec = parseSpecificDays(h.specific_days);
 
     if (freq === 'daily') return true;
     if (freq === 'weekdays') return todayPyWeekday < 5; // Monday to Friday (0..4)
@@ -134,11 +149,11 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
             if (habit.frequency === 'weekdays') {
               scheduleText = 'Weekdays (Mon-Fri)';
             } else if (habit.frequency === 'weekly_once' || habit.frequency === 'weekly_target') {
-              const spec = (Array.isArray(habit.specific_days) ? habit.specific_days : []).map(Number).filter((n) => !isNaN(n));
+              const spec = parseSpecificDays(habit.specific_days);
               const dayIdx = spec.length > 0 ? spec[0] : 4;
               scheduleText = `Every ${DAY_NAMES_SHORT[dayIdx] || 'Fri'}`;
             } else if (habit.frequency === 'specific_days') {
-              const spec = (Array.isArray(habit.specific_days) ? habit.specific_days : []).map(Number).filter((n) => !isNaN(n));
+              const spec = parseSpecificDays(habit.specific_days);
               if (spec.length > 0) {
                 scheduleText = spec.map((d) => DAY_NAMES_SHORT[d] || 'Day').join(', ');
               } else {
@@ -219,7 +234,7 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
                       </span>
                     ) : (
                       <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                        {isQuran ? `${habit.target_juz_goal || 1.0} Juz goal` : `${habit.target_duration_minutes}m target`}
+                        {isQuran ? `${habit.target_juz_goal || 1.0} Juz goal` : `${habit.target_duration_minutes || 20}m target`}
                       </span>
                     )}
                   </div>

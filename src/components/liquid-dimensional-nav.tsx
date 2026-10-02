@@ -239,35 +239,21 @@ export function LiquidDimensionalNav({
 
   return (
     <div
-      className={`relative w-full min-h-[460px] max-h-[600px] flex items-center justify-center font-['Outfit'] overflow-hidden rounded-3xl ${className}`}
+      className={`relative w-full flex items-center justify-center font-['Outfit'] rounded-3xl ${className}`}
       style={{ backgroundColor: bg, ...style }}
       {...props}
     >
-      {/* Background Grid */}
-      <div
-        className="absolute inset-0 opacity-[0.05] pointer-events-none"
-        style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }}
-      />
-
-      {/* Ambient Backplate Glow */}
-      <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] rounded-full blur-[100px] pointer-events-none opacity-25"
-        style={{
-          background: `radial-gradient(circle, ${primaryColor} 0%, ${accentColor} 100%)`
-        }}
-      />
-
-      <div className="relative flex items-center justify-center h-full max-h-[440px] scale-[0.82] min-[390px]:scale-[0.9] sm:scale-100 transition-transform duration-300">
+      <div className="relative flex items-center justify-center w-full h-full">
         {/* The Navigation Bar */}
         <motion.div
-          className="relative z-20 w-16 sm:w-20 bg-white/90 dark:bg-slate-950/85 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 rounded-[2rem] py-3.5 flex flex-col items-center justify-between gap-1.5 shadow-md dark:shadow-[0_0_40px_rgba(0,0,0,0.8)]"
+          className="relative z-20 w-16 lg:w-18 bg-white/90 dark:bg-slate-950/85 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 rounded-[2.2rem] py-2.5 flex flex-col items-center justify-between gap-1 shadow-md dark:shadow-[0_0_40px_rgba(0,0,0,0.8)]"
           style={{ borderColor: style?.borderColor || undefined }}
           layout
         >
           {/* Liquid Indicator */}
-          <div className="absolute inset-y-3.5 left-0 w-full pointer-events-none flex flex-col items-center gap-1.5">
+          <div className="absolute inset-y-2.5 left-0 w-full pointer-events-none flex flex-col items-center gap-1">
             {items.map((item) => (
-              <div key={`indicator-${item.id}`} className="relative h-12 sm:h-14 w-full flex items-center justify-center">
+              <div key={`indicator-${item.id}`} className="relative h-12 w-full flex items-center justify-center">
                 <AnimatePresence>
                   {currentHover === item.id && (
                     <motion.div
@@ -281,11 +267,11 @@ export function LiquidDimensionalNav({
                         damping: 25,
                         mass: 1
                       }}
-                      className="absolute w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-sky-500/15 dark:bg-white/[0.08] border border-sky-500/30 dark:border-white/10 shadow-xs dark:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                      className="absolute w-11 h-11 rounded-2xl bg-sky-500/15 dark:bg-white/[0.08] border border-sky-500/30 dark:border-white/10 shadow-xs dark:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
                     >
                       {/* Inner glow dot */}
                       <motion.div
-                        className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-3.5 sm:h-4 rounded-full shadow-[0_0_10px_currentColor]"
+                        className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-4 rounded-full shadow-[0_0_10px_currentColor]"
                         style={{ backgroundColor: primaryColor, color: primaryColor }}
                         layoutId="liquid-dot"
                         transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -298,19 +284,19 @@ export function LiquidDimensionalNav({
           </div>
 
           {/* Nav Items */}
-          <div className="flex flex-col gap-1.5 w-full relative z-10" onMouseLeave={() => setHoveredItem(null)}>
+          <div className="flex flex-col gap-1 w-full relative z-10" onMouseLeave={() => setHoveredItem(null)}>
             {items.map((item) => {
               const isItemActive = activeItem === item.id || hoveredItem === item.id;
               const isHovered = hoveredItem === item.id;
               return (
                 <div
                   key={item.id}
-                  className="relative h-11 sm:h-12 w-full flex items-center justify-center cursor-pointer select-none"
+                  className="relative h-12 w-full flex items-center justify-center cursor-pointer select-none"
                   onMouseEnter={() => setHoveredItem(item.id)}
                   onClick={() => handleItemClick(item)}
                 >
                   <motion.div
-                    className={`relative z-10 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center transition-colors duration-200 ${
+                    className={`relative z-10 w-10 h-10 flex items-center justify-center transition-colors duration-200 ${
                       !isItemActive ? "text-slate-500 dark:text-slate-400/60 hover:text-slate-900 dark:hover:text-white" : ""
                     }`}
                     animate={{ color: isItemActive ? (item.color || primaryColor) : undefined }}

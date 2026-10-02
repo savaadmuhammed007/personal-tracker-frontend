@@ -36,7 +36,7 @@ export const TodayProgressSection = ({
     if (item.id === 'salah-bento') {
       scrollToElement('prayers-section');
     } else if (item.id === 'awrad-bento') {
-      scrollToElement('awrad-section');
+      navigate('/awrad');
     } else if (item.id === 'quran-bento') {
       if (actionType === 'details') {
         navigate('/quran');

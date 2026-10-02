@@ -18,6 +18,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { LiquidDimensionalNav } from '../liquid-dimensional-nav';
+import { AppLogo } from '../common/AppLogo';
 
 export const Sidebar = () => {
   const { user, profile, logout } = useAuth();
@@ -426,10 +427,10 @@ export const Sidebar = () => {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#3dc3f3] to-[#076e9d] flex items-center justify-center text-white shadow-md shadow-[#088ac1]/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-          title="Islamic Daily OS"
+          className="p-1 rounded-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          title="يومي — Islamic Daily OS"
         >
-          <span className="text-2xl font-bold font-arabic">☪</span>
+          <AppLogo className="w-9 h-9" />
         </button>
       </div>
 

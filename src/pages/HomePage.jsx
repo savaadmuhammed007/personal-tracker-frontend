@@ -3,7 +3,6 @@ import { HeroGreeting } from '../components/dashboard/HeroGreeting';
 import { TodayProgressSection } from '../components/dashboard/TodayProgressSection';
 import { QuranSection } from '../components/dashboard/QuranSection';
 import { PrayerCardsGrid } from '../components/dashboard/PrayerCardsGrid';
-import { QuickAwradSection } from '../components/dashboard/QuickAwradSection';
 import { DailyHabitsSection } from '../components/dashboard/DailyHabitsSection';
 import { DailyTasksSummary } from '../components/dashboard/DailyTasksSummary';
 import { ChronologicalTimelineMini } from '../components/dashboard/ChronologicalTimelineMini';
@@ -188,32 +187,6 @@ export const HomePage = () => {
     }
   };
 
-  // Optimistic Awrad update
-  const handleOptimisticUpdateAwrad = async (id, delta, currentCount, targetCount) => {
-    const newCount = Math.max(0, currentCount + delta);
-    const isCompleted = newCount >= targetCount;
-    const progressPct = targetCount > 0 ? Math.min(100, Math.round((newCount / targetCount) * 100)) : 0;
-
-    setAwrad((prev) => {
-      const updated = prev.map((a) =>
-        a.id === id ? { ...a, today_count: newCount, is_completed: isCompleted, progress_percentage: progressPct } : a
-      );
-      try {
-        localStorage.setItem(CACHE_AWRAD_KEY, JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-
-    try {
-      const res = await awradApi.increment(id, { delta, date: getLocalDateString() });
-      setTimelineRefresh((prev) => prev + 1);
-      return res;
-    } catch (e) {
-      console.error('Failed to update awrad:', e);
-      fetchDashboardData();
-      throw e;
-    }
-  };
 
   // Compute live breakdown stats with array safety
   const safeAwrad = Array.isArray(awrad) ? awrad : [];
@@ -285,16 +258,7 @@ export const HomePage = () => {
         />
       </div>
 
-      {/* 6. Daily Awrad & Digital Dhikr Tasbih */}
-      <div id="awrad-section">
-        <QuickAwradSection
-          awradList={safeAwrad}
-          onAwradUpdated={fetchDashboardData}
-          onUpdateAwrad={handleOptimisticUpdateAwrad}
-        />
-      </div>
-
-      {/* 7. Tasks Summary */}
+      {/* 6. Tasks Summary */}
       <div id="tasks-section">
         <DailyTasksSummary
           tasksList={safeTasks}

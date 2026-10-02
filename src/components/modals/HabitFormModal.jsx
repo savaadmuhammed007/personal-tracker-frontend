@@ -423,12 +423,12 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
           />
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>
+        {/* Action Buttons: Sticky Pin to Ensure Always Visible on Mobile */}
+        <div className="sticky bottom-0 bg-white/95 dark:bg-islamic-card-dark/95 backdrop-blur-md pt-3.5 pb-1 -mx-4 -mb-4 px-4 sm:-mx-6 sm:-mb-6 sm:px-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5 z-20 mt-4">
+          <Button variant="ghost" onClick={onClose} type="button" className="px-4 py-2 text-xs sm:text-sm">
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={submitting}>
+          <Button type="submit" variant="primary" disabled={submitting} className="px-5 py-2 text-xs sm:text-sm font-bold shadow-md shadow-[#088ac1]/25">
             {submitting ? 'Saving...' : habit?.id ? 'Update Habit' : 'Create Habit'}
           </Button>
         </div>

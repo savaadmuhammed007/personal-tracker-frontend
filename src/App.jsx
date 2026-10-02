@@ -6,6 +6,7 @@ import { PrayerProvider } from './context/PrayerContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Layout } from './components/layout/Layout';
+import { AppLogo } from './components/common/AppLogo';
 
 // Page Imports
 import { HomePage } from './pages/HomePage';
@@ -31,8 +32,8 @@ const ProtectedRoute = ({ children }) => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-islamic-bg-light dark:bg-islamic-bg-dark flex flex-col items-center justify-center space-y-4">
-        <div className="w-14 h-14 rounded-3xl bg-gradient-to-tr from-[#088ac1] to-[#3dc3f3] flex items-center justify-center text-white shadow-picton-glow animate-pulse">
-          <span className="text-3xl font-bold font-arabic">☪</span>
+        <div className="flex items-center justify-center">
+          <AppLogo className="w-16 h-16 animate-pulse" />
         </div>
         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-sans">
           Loading your sanctuary...

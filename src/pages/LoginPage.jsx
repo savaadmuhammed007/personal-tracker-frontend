@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { Button } from '../components/common/UIComponents';
+import { AppLogo } from '../components/common/AppLogo';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -100,8 +101,8 @@ export const LoginPage = () => {
       <div className="max-w-md w-full z-10 space-y-5 sm:space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-gradient-to-tr from-[#088ac1] to-[#3dc3f3] flex items-center justify-center text-white shadow-picton-glow mx-auto mb-2 border border-white/20 transform hover:rotate-6 transition-transform">
-            <span className="text-2xl sm:text-3xl font-bold font-arabic">☪</span>
+          <div className="flex items-center justify-center mb-2">
+            <AppLogo className="w-16 h-16 sm:w-20 sm:h-20 hover:scale-105 transition-transform" />
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">

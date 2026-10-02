@@ -5,6 +5,7 @@ import { usePrayers } from '../../context/PrayerContext';
 import { useAuth } from '../../context/AuthContext';
 import { LocationModal } from '../modals/LocationModal';
 import { getHijriDate } from '../../utils/hijri';
+import { AppLogo } from '../common/AppLogo';
 
 const parseTimeToDate = (timeStr, baseDate = new Date()) => {
   if (!timeStr || typeof timeStr !== 'string') return null;
@@ -187,19 +188,22 @@ export const Header = () => {
               - Desktop (>= md): Full Gregorian & Hijri Date + Clock
              ======================================================== */}
 
-          {/* Mobile Clean Brand (Title & Hijri Date, Logo removed) */}
+          {/* Mobile Clean Brand (Adaptive Logo + Title & Hijri Date) */}
           <div className="flex md:hidden items-center min-w-0">
             <Link
               to="/"
-              className="flex items-baseline gap-2.5 group active:scale-95 transition-transform shrink-0"
+              className="flex items-center gap-2 group active:scale-95 transition-transform shrink-0"
               title="Home"
             >
-              <span className="font-bold text-3xl sm:text-4xl tracking-wide text-slate-900 dark:text-white font-youmi leading-none">
-                يومي
-              </span>
-              <span className="text-xs font-medium text-slate-400 dark:text-slate-400 pb-0.5">
-                {hijri.day} {hijri.monthName}
-              </span>
+              <AppLogo className="w-8 h-8" />
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-bold text-2xl tracking-wide text-slate-900 dark:text-white font-youmi leading-none">
+                  يومي
+                </span>
+                <span className="text-[11px] font-medium text-slate-400 dark:text-slate-400 pb-0.5">
+                  {hijri.day} {hijri.monthName}
+                </span>
+              </div>
             </Link>
           </div>
 

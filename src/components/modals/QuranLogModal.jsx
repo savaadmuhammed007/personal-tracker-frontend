@@ -271,16 +271,16 @@ export const QuranLogModal = ({ isOpen, onClose, habit, onSaved }) => {
           />
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-slate-200/80 dark:border-slate-800">
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+        {/* Actions: Sticky Pin */}
+        <div className="sticky bottom-0 bg-white/95 dark:bg-islamic-card-dark/95 backdrop-blur-md pt-3.5 pb-1 -mx-4 -mb-4 px-4 sm:-mx-6 sm:-mb-6 sm:px-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 z-20 mt-4">
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
             ✓ Marks Qur’an as completed for today
           </span>
           <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2">
-            <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto">
+            <Button variant="ghost" onClick={onClose} type="button" className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={submitting} className="w-full sm:w-auto">
+            <Button type="submit" variant="primary" disabled={submitting} className="w-full sm:w-auto font-bold shadow-md shadow-[#088ac1]/25">
               {submitting ? 'Saving...' : 'Save & Mark Completed'}
             </Button>
           </div>
