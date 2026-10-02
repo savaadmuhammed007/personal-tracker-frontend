@@ -42,7 +42,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
       setFrequency(habit?.frequency || 'daily');
       setSpecificDays(
         Array.isArray(habit?.specific_days) && habit.specific_days.length > 0
-          ? habit.specific_days
+          ? habit.specific_days.map(Number).filter((n) => !isNaN(n))
           : [4]
       );
       setDuration(habit?.target_duration_minutes || 20);
@@ -51,16 +51,17 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
   }, [isOpen, habit]);
 
   const handleDaySelect = (dayId) => {
+    const numId = Number(dayId);
     if (frequency === 'weekly_once' || frequency === 'weekly_target') {
-      setSpecificDays([dayId]);
+      setSpecificDays([numId]);
     } else {
       // Toggle for specific_days multi-select
-      if (specificDays.includes(dayId)) {
+      if (specificDays.includes(numId)) {
         if (specificDays.length > 1) {
-          setSpecificDays(specificDays.filter((d) => d !== dayId));
+          setSpecificDays(specificDays.filter((d) => d !== numId));
         }
       } else {
-        setSpecificDays([...specificDays, dayId].sort((a, b) => a - b));
+        setSpecificDays([...specificDays, numId].sort((a, b) => a - b));
       }
     }
   };
@@ -86,7 +87,8 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
 
     let daysToSave = [];
     if (frequency === 'weekly_once' || frequency === 'weekly_target' || frequency === 'specific_days') {
-      daysToSave = specificDays;
+      daysToSave = specificDays.map(Number).filter((n) => !isNaN(n));
+      if (daysToSave.length === 0) daysToSave = [4];
     } else if (frequency === 'weekdays') {
       daysToSave = [0, 1, 2, 3, 4];
     } else {
@@ -147,7 +149,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
     }
   };
 
-  const selectedDayName = DAYS_OF_WEEK.find((d) => d.id === specificDays[0])?.full || 'Friday';
+  const selectedDayName = DAYS_OF_WEEK.find((d) => d.id === Number(specificDays[0]))?.full || 'Friday';
   const selectedSurahObj = selectedSurahNumber
     ? QURAN_SURAHS.find((s) => s.number === parseInt(selectedSurahNumber, 10))
     : null;
@@ -389,7 +391,9 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
             <p className="text-[10px] sm:text-[11px] text-[#076e9d] dark:text-[#81d7f8] font-medium">
               💡 This habit will appear on your Home schedule every{' '}
               <strong>
-                {specificDays.map((d) => DAYS_OF_WEEK.find((item) => item.id === d)?.full).join(', ')}
+                {specificDays
+                  .map((d) => DAYS_OF_WEEK.find((item) => item.id === Number(d))?.full || 'Day')
+                  .join(', ')}
               </strong>.
             </p>
           </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RotateCcw, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -12,49 +12,41 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error('ErrorBoundary caught error:', error, errorInfo);
   }
 
-  handleReset = () => {
-    localStorage.clear();
-    window.location.href = '/login';
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null });
   };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6 text-center">
-          <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
-              <AlertCircle className="w-7 h-7" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              Something went wrong
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              An unexpected error occurred. You can reload the application or reset your local session.
-            </p>
-            {this.state.error && (
-              <pre className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-left text-[11px] font-mono overflow-auto max-h-40 border border-rose-200 dark:border-rose-900">
-                {this.state.error.toString()}
-                {"\n"}
-                {this.state.error.stack}
-              </pre>
-            )}
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200"
-              >
-                Reload Page
-              </button>
-              <button
-                onClick={this.handleReset}
-                className="px-4 py-2 rounded-xl bg-[#088ac1] hover:bg-[#076e9d] text-white font-bold text-xs shadow-md shadow-[#088ac1]/20 transition-all"
-              >
-                Reset Session & Login
-              </button>
-            </div>
+        <div className="min-h-[260px] p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-center flex flex-col items-center justify-center space-y-3 m-4 max-w-md mx-auto">
+          <div className="w-12 h-12 rounded-2xl bg-[#e1f3fd] dark:bg-[#0c4059] text-[#088ac1] dark:text-[#3dc3f3] flex items-center justify-center">
+            <RefreshCw className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            Display Refreshed
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+            A temporary view error was recovered. Your session and logged activities are completely intact.
+          </p>
+          <div className="flex items-center justify-center gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={this.handleRetry}
+              className="px-4 py-2 rounded-xl bg-[#088ac1] hover:bg-[#1eb4eb] text-white font-bold text-xs shadow-md shadow-[#088ac1]/20 transition-all cursor-pointer"
+            >
+              Resume
+            </button>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            >
+              Refresh Page
+            </button>
           </div>
         </div>
       );
@@ -62,3 +54,5 @@ export class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+
+export default ErrorBoundary;

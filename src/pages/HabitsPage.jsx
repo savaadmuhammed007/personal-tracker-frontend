@@ -162,12 +162,13 @@ export const HabitsPage = () => {
   ];
 
   const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const todayPyWeekday = (new Date().getDay() + 6) % 7;
 
   const isHabitScheduledToday = (h) => {
-    if (h.is_scheduled_today !== undefined && h.is_scheduled_today !== null) return h.is_scheduled_today;
+    if (h.is_scheduled_today !== undefined && h.is_scheduled_today !== null) return Boolean(h.is_scheduled_today);
     const freq = h.frequency;
-    const spec = Array.isArray(h.specific_days) ? h.specific_days : [];
+    const spec = (Array.isArray(h.specific_days) ? h.specific_days : []).map(Number).filter((n) => !isNaN(n));
     if (freq === 'daily') return true;
     if (freq === 'weekdays') return todayPyWeekday < 5;
     if (freq === 'weekly_once' || freq === 'weekly_target' || freq === 'specific_days') {
@@ -281,17 +282,25 @@ export const HabitsPage = () => {
             if (habit.frequency === 'weekdays') {
               freqLabel = 'Weekdays (Mon-Fri)';
             } else if (habit.frequency === 'weekly_once' || habit.frequency === 'weekly_target') {
-              const dayIdx = habit.specific_days?.[0] !== undefined ? habit.specific_days[0] : 4;
+              const spec = (Array.isArray(habit.specific_days) ? habit.specific_days : []).map(Number).filter((n) => !isNaN(n));
+              const dayIdx = spec.length > 0 ? spec[0] : 4;
               freqLabel = `Every ${DAY_NAMES[dayIdx] || 'Friday'}`;
-            } else if (habit.frequency === 'specific_days' && habit.specific_days?.length > 0) {
-              freqLabel = habit.specific_days.map((d) => DAY_NAMES[d]?.slice(0, 3)).join(', ');
+            } else if (habit.frequency === 'specific_days') {
+              const spec = (Array.isArray(habit.specific_days) ? habit.specific_days : []).map(Number).filter((n) => !isNaN(n));
+              if (spec.length > 0) {
+                freqLabel = spec.map((d) => (DAY_NAMES_SHORT[d] || 'Day')).join(', ');
+              } else {
+                freqLabel = 'Specific Days';
+              }
             }
 
             let compTime = null;
             if (habit.today_completion?.completed_at) {
               try {
                 const dt = new Date(habit.today_completion.completed_at);
-                compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (!isNaN(dt.getTime())) {
+                  compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
               } catch (e) {
                 compTime = null;
               }

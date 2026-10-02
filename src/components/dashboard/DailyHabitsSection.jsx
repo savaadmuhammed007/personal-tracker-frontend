@@ -4,6 +4,9 @@ import { habitApi } from '../../api/habitApi';
 import { useNotification } from '../../context/NotificationContext';
 import { getLocalDateString } from '../../utils/dateUtils';
 
+const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
 export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, onOpenQuranModal, onOpenAddModal }) => {
   const { showToast } = useNotification();
   const [pendingHabitIds, setPendingHabitIds] = useState(new Set());
@@ -13,8 +16,11 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
   const todayPyWeekday = (new Date().getDay() + 6) % 7;
 
   const isHabitScheduledForToday = (h) => {
+    if (h.is_scheduled_today !== undefined && h.is_scheduled_today !== null) {
+      return Boolean(h.is_scheduled_today);
+    }
     const freq = h.frequency || 'daily';
-    const spec = Array.isArray(h.specific_days) ? h.specific_days : [];
+    const spec = (Array.isArray(h.specific_days) ? h.specific_days : []).map(Number).filter((n) => !isNaN(n));
 
     if (freq === 'daily') return true;
     if (freq === 'weekdays') return todayPyWeekday < 5; // Monday to Friday (0..4)
@@ -75,7 +81,7 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
       case 'health':
         return { label: '💪 Health', color: 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800' };
       default:
-        return { label: category, color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/60 dark:border-slate-700/60' };
+        return { label: category || 'Habit', color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/60 dark:border-slate-700/60' };
     }
   };
 
@@ -125,19 +131,28 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
             const catBadge = getCategoryBadge(habit.category);
 
             let scheduleText = 'Every Day';
-            if (habit.frequency === 'weekdays') scheduleText = 'Weekdays';
-            else if (habit.frequency === 'weekly_once' || habit.frequency === 'weekly_target') {
-              const dayIdx = habit.specific_days?.[0] !== undefined ? habit.specific_days[0] : 4;
-              scheduleText = `Every ${DAY_NAMES[dayIdx] || 'Fri'}`;
-            } else if (habit.frequency === 'specific_days' && habit.specific_days?.length > 0) {
-              scheduleText = habit.specific_days.map((d) => DAY_NAMES[d]).join(', ');
+            if (habit.frequency === 'weekdays') {
+              scheduleText = 'Weekdays (Mon-Fri)';
+            } else if (habit.frequency === 'weekly_once' || habit.frequency === 'weekly_target') {
+              const spec = (Array.isArray(habit.specific_days) ? habit.specific_days : []).map(Number).filter((n) => !isNaN(n));
+              const dayIdx = spec.length > 0 ? spec[0] : 4;
+              scheduleText = `Every ${DAY_NAMES_SHORT[dayIdx] || 'Fri'}`;
+            } else if (habit.frequency === 'specific_days') {
+              const spec = (Array.isArray(habit.specific_days) ? habit.specific_days : []).map(Number).filter((n) => !isNaN(n));
+              if (spec.length > 0) {
+                scheduleText = spec.map((d) => DAY_NAMES_SHORT[d] || 'Day').join(', ');
+              } else {
+                scheduleText = 'Specific Days';
+              }
             }
 
             let compTime = null;
             if (habit.today_completion?.completed_at) {
               try {
                 const dt = new Date(habit.today_completion.completed_at);
-                compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (!isNaN(dt.getTime())) {
+                  compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
               } catch (e) {
                 compTime = null;
               }

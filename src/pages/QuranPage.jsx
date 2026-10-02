@@ -675,9 +675,10 @@ export const QuranPage = () => {
         ) : (
           <div className="space-y-2.5">
             {completions.slice(0, 8).map((comp) => {
-              const dt = comp.completed_at ? new Date(comp.completed_at) : new Date(comp.date);
-              const formattedDate = dt.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-              const formattedTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              const dt = comp.completed_at ? new Date(comp.completed_at) : (comp.date ? new Date(comp.date) : null);
+              const isValidDate = dt && !isNaN(dt.getTime());
+              const formattedDate = isValidDate ? dt.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : (comp.date || '');
+              const formattedTime = comp.completed_at && isValidDate ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
               return (
                 <div

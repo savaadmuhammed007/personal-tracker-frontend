@@ -223,7 +223,9 @@ export const TasksPage = () => {
             if (task.completed_at) {
               try {
                 const dt = new Date(task.completed_at);
-                compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (!isNaN(dt.getTime())) {
+                  compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
               } catch (e) {
                 compTime = null;
               }
