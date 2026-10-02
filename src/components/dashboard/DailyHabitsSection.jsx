@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check, Flame, BookOpen, Clock, Plus, Sparkles, Loader2 } from 'lucide-react';
 import { habitApi } from '../../api/habitApi';
 import { useNotification } from '../../context/NotificationContext';
-import { getLocalDateString } from '../../utils/dateUtils';
+import { getLocalDateString, isHabitScheduledToday, parseSpecificDays } from '../../utils/dateUtils';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -12,42 +12,8 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
   const [pendingHabitIds, setPendingHabitIds] = useState(new Set());
   const safeHabits = (Array.isArray(habitsList) ? habitsList : []).filter((h) => h && h.is_active !== false);
 
-  // Convert JS Sunday(0)..Saturday(6) to Python/ISO standard 0=Mon..6=Sun
-  const todayPyWeekday = (new Date().getDay() + 6) % 7;
-
-  const parseSpecificDays = (val) => {
-    if (!val) return [];
-    if (Array.isArray(val)) return val.map(Number).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
-    if (typeof val === 'string') {
-      try {
-        const parsed = JSON.parse(val);
-        if (Array.isArray(parsed)) return parsed.map(Number).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
-      } catch {}
-      return val.split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
-    }
-    if (typeof val === 'number' && !isNaN(val) && val >= 0 && val <= 6) return [val];
-    return [];
-  };
-
-  const isHabitScheduledForToday = (h) => {
-    if (!h) return false;
-    if (h.is_scheduled_today !== undefined && h.is_scheduled_today !== null) {
-      return Boolean(h.is_scheduled_today);
-    }
-    const freq = h.frequency || 'daily';
-    const spec = parseSpecificDays(h.specific_days);
-
-    if (freq === 'daily') return true;
-    if (freq === 'weekdays') return todayPyWeekday < 5; // Monday to Friday (0..4)
-    if (freq === 'weekly_once' || freq === 'weekly_target' || freq === 'specific_days') {
-      if (spec.length > 0) return spec.includes(todayPyWeekday);
-      return todayPyWeekday === 4; // Default Friday (4)
-    }
-    return true;
-  };
-
   // Show all scheduled habits for today (including Qur'an habits), strictly for today's day
-  const todayHabits = safeHabits.filter((h) => isHabitScheduledForToday(h));
+  const todayHabits = safeHabits.filter((h) => isHabitScheduledToday(h));
 
   const handleToggle = async (habit) => {
     if (pendingHabitIds.has(habit.id)) return;
@@ -176,11 +142,10 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
             return (
               <div
                 key={habit.id}
-                className={`rounded-2xl p-4 transition-all duration-200 border flex flex-col justify-between ${
-                  isDone
+                className={`rounded-2xl p-4 transition-all duration-200 border flex flex-col justify-between ${isDone
                     ? 'bg-[#e1f3fd]/70 dark:bg-[#0f4d6b]/25 border-[#bce8fb] dark:border-[#0b5d81]'
                     : 'glass-card glass-card-hover border-islamic-border-light dark:border-islamic-border-dark'
-                }`}
+                  }`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -212,8 +177,8 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
                         {habit.today_completion?.surah_name
                           ? `Surah ${habit.today_completion.surah_name} (v.${habit.today_completion.last_ayah_number || habit.today_completion.ayah_end || 1})`
                           : habit.last_surah_name
-                          ? `Surah ${habit.last_surah_name} (v.${habit.last_ayah_number || 1})`
-                          : `${habit.target_juz_goal || 1.0} Juz goal`}
+                            ? `Surah ${habit.last_surah_name} (v.${habit.last_ayah_number || 1})`
+                            : `${habit.target_juz_goal || 1.0} Juz goal`}
                       </span>
                     </div>
                   )}
@@ -255,13 +220,11 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
                       type="button"
                       disabled={pendingHabitIds.has(habit.id)}
                       onClick={() => handleToggle(habit)}
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                        pendingHabitIds.has(habit.id) ? 'opacity-70 cursor-wait' : ''
-                      } ${
-                        isDone
+                      className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all cursor-pointer ${pendingHabitIds.has(habit.id) ? 'opacity-70 cursor-wait' : ''
+                        } ${isDone
                           ? 'bg-[#088ac1] text-white shadow-xs'
                           : 'border-2 border-slate-300 dark:border-slate-600 hover:border-[#1eb4eb]'
-                      }`}
+                        }`}
                     >
                       {isDone && <Check className="w-4 h-4 stroke-[3]" />}
                     </button>

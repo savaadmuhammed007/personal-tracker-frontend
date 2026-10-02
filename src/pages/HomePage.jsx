@@ -13,7 +13,7 @@ import { habitApi } from '../api/habitApi';
 import { awradApi } from '../api/awradApi';
 import { taskApi } from '../api/taskApi';
 import { usePrayers } from '../context/PrayerContext';
-import { getLocalDateString } from '../utils/dateUtils';
+import { getLocalDateString, isHabitScheduledToday } from '../utils/dateUtils';
 
 const CACHE_HABITS_KEY = 'cached_dashboard_habits';
 const CACHE_AWRAD_KEY = 'cached_dashboard_awrad';
@@ -193,8 +193,13 @@ export const HomePage = () => {
   const safeHabits = Array.isArray(habits) ? habits : [];
   const safeTasks = Array.isArray(tasks) ? tasks : [];
 
+  // Filter active habits scheduled strictly for today (everyday habits + today's weekday habits)
+  const todayScheduledHabits = safeHabits.filter(
+    (h) => h && h.is_active !== false && isHabitScheduledToday(h)
+  );
+
   const completedAwradCount = safeAwrad.filter((a) => a.is_completed).length;
-  const completedHabitsCount = safeHabits.filter((h) => h.today_completion).length;
+  const completedHabitsCount = todayScheduledHabits.filter((h) => h.today_completion).length;
   const completedTasksCount = safeTasks.filter((t) => t.status === 'completed').length;
   const quranHabit =
     safeHabits.find((h) => h.category === 'quran' && !h.last_surah_number && h.target_juz_goal) ||
@@ -212,7 +217,7 @@ export const HomePage = () => {
     prayers: { completed: prayersCompleted || 0, total: 5 },
     awrad: { completed: completedAwradCount, total: safeAwrad.length || 6 },
     quran: { completed: quranCompleted, total: quranHabit ? 1 : 1 },
-    habits: { completed: completedHabitsCount, total: safeHabits.length || 6 },
+    habits: { completed: completedHabitsCount, total: todayScheduledHabits.length },
     tasks: { completed: completedTasksCount, total: safeTasks.length || 3 },
     quranStreak: quranHabit?.current_streak || 0,
     quranGoal: quranHabit?.target_juz_goal || 1.0,

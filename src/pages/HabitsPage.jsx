@@ -17,7 +17,7 @@ import { HabitFormModal } from '../components/modals/HabitFormModal';
 import { QuranLogModal } from '../components/modals/QuranLogModal';
 import { useNotification } from '../context/NotificationContext';
 import { Button } from '../components/common/UIComponents';
-import { getLocalDateString } from '../utils/dateUtils';
+import { getLocalDateString, isHabitScheduledToday, parseSpecificDays } from '../utils/dateUtils';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -163,33 +163,7 @@ export const HabitsPage = () => {
     { id: 'custom', label: 'Personal Goals' },
   ];
 
-  const parseSpecificDays = (val) => {
-    if (!val) return [];
-    if (Array.isArray(val)) return val.map(Number).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
-    if (typeof val === 'string') {
-      try {
-        const parsed = JSON.parse(val);
-        if (Array.isArray(parsed)) return parsed.map(Number).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
-      } catch {}
-      return val.split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
-    }
-    if (typeof val === 'number' && !isNaN(val) && val >= 0 && val <= 6) return [val];
-    return [];
-  };
 
-  const isHabitScheduledToday = (h) => {
-    if (!h) return false;
-    if (h.is_scheduled_today !== undefined && h.is_scheduled_today !== null) return Boolean(h.is_scheduled_today);
-    const freq = h.frequency || 'daily';
-    const spec = parseSpecificDays(h.specific_days);
-    if (freq === 'daily') return true;
-    if (freq === 'weekdays') return todayPyWeekday < 5;
-    if (freq === 'weekly_once' || freq === 'weekly_target' || freq === 'specific_days') {
-      if (spec.length > 0) return spec.includes(todayPyWeekday);
-      return todayPyWeekday === 4;
-    }
-    return true;
-  };
 
   const filteredHabits = habits.filter((h) => {
     if (selectedCategory === 'all') return true;

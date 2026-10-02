@@ -21,8 +21,8 @@ export const TodayProgressSection = ({
     tasks = { completed: 0, total: 0 },
   } = stats || {};
 
-  const totalItems = (prayers?.total || 5) + (awrad?.total || 0) + (habits?.total || 0) + (tasks?.total || 0);
-  const completedItems = (prayers?.completed || 0) + (awrad?.completed || 0) + (habits?.completed || 0) + (tasks?.completed || 0);
+  const totalItems = (prayers?.total ?? 5) + (awrad?.total ?? 0) + (habits?.total ?? 0) + (tasks?.total ?? 0);
+  const completedItems = (prayers?.completed ?? 0) + (awrad?.completed ?? 0) + (habits?.completed ?? 0) + (tasks?.completed ?? 0);
   const overallPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
   const scrollToElement = (elementId) => {
@@ -79,7 +79,7 @@ export const TodayProgressSection = ({
       icon: <Repeat className="w-5 h-5" />,
       content: 'Recite your morning & evening adhkar, Astaghfirullah, and Salawat. Consistent remembrance of Allah brings tranquility to the soul.',
       metrics: [
-        { label: 'Completed', value: `${awrad?.completed || 0}/${awrad?.total || 6}` },
+        { label: 'Completed', value: `${awrad?.completed || 0}/${awrad?.total ?? 6}` },
         { label: 'Rate', value: `${Math.round(((awrad?.completed || 0) / Math.max(awrad?.total || 1, 1)) * 100)}%` },
         { label: 'Status', value: (awrad?.completed || 0) >= (awrad?.total || 6) ? 'Done' : 'Active' },
       ],
@@ -111,8 +111,8 @@ export const TodayProgressSection = ({
       icon: <CheckSquare className="w-5 h-5" />,
       content: 'Practice Sunnah deeds, Tahajjud, charity, and complete your daily prioritized tasks with excellence (Ihsan) and promptness.',
       metrics: [
-        { label: 'Habits', value: `${habits?.completed || 0}/${habits?.total || 5}` },
-        { label: 'Tasks', value: `${tasks?.completed || 0}/${tasks?.total || 3}` },
+        { label: 'Habits', value: `${habits?.completed || 0}/${habits?.total ?? 0}` },
+        { label: 'Tasks', value: `${tasks?.completed || 0}/${tasks?.total ?? 0}` },
         { label: 'Efficiency', value: `${overallPercentage}%` },
       ],
       actionLabel: '+ Add Habit',
@@ -124,8 +124,8 @@ export const TodayProgressSection = ({
     { label: 'Prayers', completed: prayers?.completed || 0, total: prayers?.total || 5, icon: Sun, color: 'text-sky-500', barColor: 'bg-[#1eb4eb]' },
     { label: 'Daily Awrad', completed: awrad?.completed || 0, total: awrad?.total || 0, icon: Repeat, color: 'text-cyan-500', barColor: 'bg-[#3dc3f3]' },
     { label: 'Qur’an', completed: quran?.completed || 0, total: quran?.total || 1, icon: BookOpen, color: 'text-blue-500', barColor: 'bg-[#81d7f8]' },
-    { label: 'Habits', completed: habits?.completed || 0, total: habits?.total || 0, icon: CheckCircle2, color: 'text-indigo-500', barColor: 'bg-[#088ac1]' },
-    { label: 'Tasks', completed: tasks?.completed || 0, total: tasks?.total || 0, icon: CheckSquare, color: 'text-amber-500', barColor: 'bg-[#076e9d]' },
+    { label: 'Habits', completed: habits?.completed || 0, total: habits?.total ?? 0, icon: CheckCircle2, color: 'text-indigo-500', barColor: 'bg-[#088ac1]' },
+    { label: 'Tasks', completed: tasks?.completed || 0, total: tasks?.total ?? 0, icon: CheckSquare, color: 'text-amber-500', barColor: 'bg-[#076e9d]' },
   ];
 
   return (
