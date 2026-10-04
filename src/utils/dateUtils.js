@@ -1,7 +1,8 @@
 /**
- * Date and Timezone Utilities
- * Ensures the frontend always uses the client's local calendar date
- * so that server UTC midnight shifts do not desynchronize completed habits, prayers, or tasks.
+ * Date, Timezone and Daily Caching Utilities
+ * Ensures the frontend always operates against the client's local calendar date
+ * so that server UTC midnight shifts or day rollovers do not desynchronize
+ * completed habits, prayers, tasks, or awrad.
  */
 
 export const getLocalDateString = (d = new Date()) => {
@@ -59,25 +60,12 @@ export const parseSpecificDays = (val) => {
 };
 
 /**
- * Checks if a habit is scheduled for a given date (or today if not specified).
- * If today is Friday (weekday 4):
- * - Daily habits -> true
- * - Friday specific/weekly habits -> true
- * - Weekdays (Mon-Fri) -> true
- * - Other days (Sat, Sun, etc.) -> false
+ * Checks if a habit is scheduled for a given date (defaults to client's local today).
  */
 export const isHabitScheduledToday = (habit, targetDate = getLocalDateString()) => {
   if (!habit || habit.is_active === false) return false;
 
-  const todayStr = getLocalDateString();
   const targetDateStr = typeof targetDate === 'string' ? targetDate : getLocalDateString(targetDate);
-  const isTargetToday = !targetDate || targetDateStr === todayStr;
-
-  // If habit has backend evaluated is_scheduled_today and checking for today
-  if (isTargetToday && habit.is_scheduled_today !== undefined && habit.is_scheduled_today !== null) {
-    return Boolean(habit.is_scheduled_today);
-  }
-
   const weekday = getTodayWeekdayIndex(targetDateStr);
   const freq = habit.frequency || 'daily';
   const spec = parseSpecificDays(habit.specific_days);
@@ -91,3 +79,92 @@ export const isHabitScheduledToday = (habit, targetDate = getLocalDateString()) 
   return true;
 };
 
+/**
+ * Sanitizes cached items from a past date to remove stale completion checkmarks/counts
+ * while keeping layout-ready entities for zero-lag instant rendering.
+ */
+export const sanitizeDailyCacheList = (key, list, targetDate = getLocalDateString()) => {
+  if (!Array.isArray(list)) return [];
+  if (key.includes('habits')) {
+    return list.map((h) => ({
+      ...h,
+      today_completion: null,
+      is_scheduled_today: isHabitScheduledToday(h, targetDate),
+    }));
+  }
+  if (key.includes('awrad')) {
+    return list.map((a) => ({
+      ...a,
+      today_count: 0,
+      is_completed: false,
+      progress_percentage: 0,
+    }));
+  }
+  if (key.includes('tasks')) {
+    // For tasks, remove completed ones from previous day
+    return list.filter((t) => t && t.status !== 'completed');
+  }
+  return list;
+};
+
+/**
+ * Date-aware localStorage reader.
+ * Enforces that cached completion states only apply to the current targetDate.
+ */
+export const getDailyCache = (key, defaultVal = null, targetDate = getLocalDateString()) => {
+  try {
+    if (typeof localStorage === 'undefined') return defaultVal;
+    const raw = localStorage.getItem(key);
+    if (!raw) return defaultVal;
+
+    const parsed = JSON.parse(raw);
+
+    // Enveloped format: { date: 'YYYY-MM-DD', data: ... }
+    if (parsed && typeof parsed === 'object' && 'date' in parsed && 'data' in parsed) {
+      if (parsed.date === targetDate) {
+        return parsed.data;
+      }
+      // If date mismatch, sanitize the old data to strip stale completion flags
+      if (Array.isArray(parsed.data)) {
+        return sanitizeDailyCacheList(key, parsed.data, targetDate);
+      }
+      return defaultVal;
+    }
+
+    // Legacy un-enveloped format: sanitize and re-envelope
+    if (Array.isArray(parsed)) {
+      return sanitizeDailyCacheList(key, parsed, targetDate);
+    }
+
+    return defaultVal;
+  } catch (e) {
+    return defaultVal;
+  }
+};
+
+/**
+ * Date-aware localStorage writer.
+ * Saves payload tagged with the client's local calendar date.
+ */
+export const setDailyCache = (key, data, targetDate = getLocalDateString()) => {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const envelope = {
+      date: targetDate,
+      saved_at: new Date().toISOString(),
+      data,
+    };
+    localStorage.setItem(key, JSON.stringify(envelope));
+  } catch (e) {}
+};
+
+/**
+ * Clears specific daily cache key
+ */
+export const clearDailyCache = (key) => {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(key);
+    }
+  } catch (e) {}
+};

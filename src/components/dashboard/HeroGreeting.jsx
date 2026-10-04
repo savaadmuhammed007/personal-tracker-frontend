@@ -1,23 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Quote, Calendar, BookmarkCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useDayWatch } from '../../context/DayWatchContext';
 import { analyticsApi } from '../../api/analyticsApi';
 
 export const HeroGreeting = () => {
   const { user, profile } = useAuth();
+  const { todayDate, revision } = useDayWatch();
   const [quoteData, setQuoteData] = useState(null);
 
   useEffect(() => {
     const fetchQuote = async () => {
       try {
-        const res = await analyticsApi.getDailyQuote();
+        const res = await analyticsApi.getDailyQuote(todayDate);
         setQuoteData(res.data);
       } catch (e) {
         console.error('Failed to load quote:', e);
       }
     };
     fetchQuote();
-  }, [profile?.hijri_adjustment]);
+  }, [profile?.hijri_adjustment, todayDate, revision]);
 
   const getGreetingTime = () => {
     const hour = new Date().getHours();

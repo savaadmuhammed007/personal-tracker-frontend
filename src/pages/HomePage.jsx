@@ -13,29 +13,21 @@ import { habitApi } from '../api/habitApi';
 import { awradApi } from '../api/awradApi';
 import { taskApi } from '../api/taskApi';
 import { usePrayers } from '../context/PrayerContext';
-import { getLocalDateString, isHabitScheduledToday } from '../utils/dateUtils';
+import { useDayWatch } from '../context/DayWatchContext';
+import { getLocalDateString, isHabitScheduledToday, getDailyCache, setDailyCache } from '../utils/dateUtils';
 
 const CACHE_HABITS_KEY = 'cached_dashboard_habits';
 const CACHE_AWRAD_KEY = 'cached_dashboard_awrad';
 const CACHE_TASKS_KEY = 'cached_dashboard_tasks';
 
-const getCachedList = (key) => {
-  try {
-    const item = localStorage.getItem(key);
-    if (!item) return [];
-    const parsed = JSON.parse(item);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
 export const HomePage = () => {
   const { prayers, completed_count: prayersCompleted } = usePrayers();
-  // Instant render from localStorage cache (eliminates initial empty lag!)
-  const [habits, setHabits] = useState(() => getCachedList(CACHE_HABITS_KEY));
-  const [awrad, setAwrad] = useState(() => getCachedList(CACHE_AWRAD_KEY));
-  const [tasks, setTasks] = useState(() => getCachedList(CACHE_TASKS_KEY));
+  const { todayDate, revision } = useDayWatch();
+
+  // Instant render from date-validated localStorage cache (eliminates initial empty lag without showing stale completed checkmarks from yesterday!)
+  const [habits, setHabits] = useState(() => getDailyCache(CACHE_HABITS_KEY, []));
+  const [awrad, setAwrad] = useState(() => getDailyCache(CACHE_AWRAD_KEY, []));
+  const [tasks, setTasks] = useState(() => getDailyCache(CACHE_TASKS_KEY, []));
   const [timelineRefresh, setTimelineRefresh] = useState(0);
 
   // Modals state
@@ -68,19 +60,27 @@ export const HomePage = () => {
       setTasks(tasksData);
       setTimelineRefresh((prev) => prev + 1);
 
-      try {
-        localStorage.setItem(CACHE_HABITS_KEY, JSON.stringify(habitsData));
-        localStorage.setItem(CACHE_AWRAD_KEY, JSON.stringify(awradData));
-        localStorage.setItem(CACHE_TASKS_KEY, JSON.stringify(tasksData));
-      } catch {}
+      setDailyCache(CACHE_HABITS_KEY, habitsData, localDate);
+      setDailyCache(CACHE_AWRAD_KEY, awradData, localDate);
+      setDailyCache(CACHE_TASKS_KEY, tasksData, localDate);
     } catch (e) {
       console.error('Failed to load dashboard data:', e);
     }
   }, []);
 
+  // Fetch on mount, on day rollover, or on revision trigger
   useEffect(() => {
     fetchDashboardData();
-  }, [fetchDashboardData]);
+
+    const handleDayChanged = () => {
+      fetchDashboardData();
+    };
+
+    window.addEventListener('app:day-changed', handleDayChanged);
+    return () => {
+      window.removeEventListener('app:day-changed', handleDayChanged);
+    };
+  }, [fetchDashboardData, todayDate, revision]);
 
   // Whenever prayersCompleted changes, trigger timeline refresh so logged prayers appear immediately
   useEffect(() => {
@@ -116,9 +116,7 @@ export const HomePage = () => {
         }
         return h;
       });
-      try {
-        localStorage.setItem(CACHE_HABITS_KEY, JSON.stringify(updated));
-      } catch {}
+      setDailyCache(CACHE_HABITS_KEY, updated, localDate);
       return updated;
     });
 
@@ -143,9 +141,7 @@ export const HomePage = () => {
             }
             return h;
           });
-          try {
-            localStorage.setItem(CACHE_HABITS_KEY, JSON.stringify(next));
-          } catch {}
+          setDailyCache(CACHE_HABITS_KEY, next, localDate);
           return next;
         });
       }
@@ -161,14 +157,13 @@ export const HomePage = () => {
 
   // Optimistic task toggle
   const handleOptimisticToggleTask = async (task) => {
+    const localDate = getLocalDateString();
     const isCompleted = task.status === 'completed';
     const nextStatus = isCompleted ? 'pending' : 'completed';
 
     setTasks((prev) => {
       const updated = prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus } : t));
-      try {
-        localStorage.setItem(CACHE_TASKS_KEY, JSON.stringify(updated));
-      } catch {}
+      setDailyCache(CACHE_TASKS_KEY, updated, localDate);
       return updated;
     });
 
@@ -195,7 +190,7 @@ export const HomePage = () => {
 
   // Filter active habits scheduled strictly for today (everyday habits + today's weekday habits)
   const todayScheduledHabits = safeHabits.filter(
-    (h) => h && h.is_active !== false && isHabitScheduledToday(h)
+    (h) => h && h.is_active !== false && isHabitScheduledToday(h, todayDate)
   );
 
   const completedAwradCount = safeAwrad.filter((a) => a.is_completed).length;
@@ -274,7 +269,7 @@ export const HomePage = () => {
       </div>
 
       {/* 8. Today's Chronological Activity Timeline */}
-      <ChronologicalTimelineMini refreshTrigger={timelineRefresh} date={getLocalDateString()} />
+      <ChronologicalTimelineMini refreshTrigger={timelineRefresh + revision} date={todayDate} />
 
       {/* Modals */}
       {selectedQuranHabit && (

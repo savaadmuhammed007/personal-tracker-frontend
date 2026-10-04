@@ -67,7 +67,7 @@ export const QuranSection = ({
     try {
       if (isCurrentLogged) {
         // Unclick / deselect: unmark completion for today
-        await habitApi.toggleHabit(quranHabit.id, getLocalDateString(), false);
+        await habitApi.toggleHabit(quranHabit.id, { date: getLocalDateString(), is_completed: false, action: 'incomplete' });
         showToast(
           'Recitation Cleared',
           'Recitation fraction unselected for today.',

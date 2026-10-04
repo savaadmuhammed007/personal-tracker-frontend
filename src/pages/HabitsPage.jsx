@@ -16,8 +16,9 @@ import { habitApi } from '../api/habitApi';
 import { HabitFormModal } from '../components/modals/HabitFormModal';
 import { QuranLogModal } from '../components/modals/QuranLogModal';
 import { useNotification } from '../context/NotificationContext';
+import { useDayWatch } from '../context/DayWatchContext';
 import { Button } from '../components/common/UIComponents';
-import { getLocalDateString, isHabitScheduledToday, parseSpecificDays } from '../utils/dateUtils';
+import { getLocalDateString, isHabitScheduledToday, parseSpecificDays, getDailyCache, setDailyCache } from '../utils/dateUtils';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -25,21 +26,11 @@ const CACHE_HABITS_PAGE_KEY = 'cached_habits_page';
 
 export const HabitsPage = () => {
   const navigate = useNavigate();
-  const [habits, setHabits] = useState(() => {
-    try {
-      const cached = localStorage.getItem(CACHE_HABITS_PAGE_KEY);
-      return cached ? JSON.parse(cached) : [];
-    } catch {
-      return [];
-    }
-  });
+  const { todayDate, revision } = useDayWatch();
+  const [habits, setHabits] = useState(() => getDailyCache(CACHE_HABITS_PAGE_KEY, []));
   const [loading, setLoading] = useState(() => {
-    try {
-      const cached = localStorage.getItem(CACHE_HABITS_PAGE_KEY);
-      return !cached || JSON.parse(cached).length === 0;
-    } catch {
-      return true;
-    }
+    const cached = getDailyCache(CACHE_HABITS_PAGE_KEY, null);
+    return !cached || cached.length === 0;
   });
   const [pendingHabitIds, setPendingHabitIds] = useState(new Set());
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -57,9 +48,7 @@ export const HabitsPage = () => {
       const res = await habitApi.getHabits(params);
       const data = res.data || [];
       setHabits(data);
-      try {
-        localStorage.setItem(CACHE_HABITS_PAGE_KEY, JSON.stringify(data));
-      } catch {}
+      setDailyCache(CACHE_HABITS_PAGE_KEY, data, localDate);
     } catch (e) {
       console.error('Failed to load habits:', e);
     } finally {
@@ -69,7 +58,16 @@ export const HabitsPage = () => {
 
   useEffect(() => {
     fetchHabits();
-  }, [fetchHabits]);
+
+    const handleDayChanged = () => {
+      fetchHabits();
+    };
+
+    window.addEventListener('app:day-changed', handleDayChanged);
+    return () => {
+      window.removeEventListener('app:day-changed', handleDayChanged);
+    };
+  }, [fetchHabits, todayDate, revision]);
 
   const handleToggle = async (habit) => {
     if (pendingHabitIds.has(habit.id)) return;
@@ -84,8 +82,8 @@ export const HabitsPage = () => {
     }
 
     // 1. Optimistic instant UI update
-    setHabits((prev) =>
-      prev.map((h) => {
+    setHabits((prev) => {
+      const updated = prev.map((h) => {
         if (h.id === habit.id) {
           const newCompletion = targetState
             ? {
@@ -104,8 +102,10 @@ export const HabitsPage = () => {
           };
         }
         return h;
-      })
-    );
+      });
+      setDailyCache(CACHE_HABITS_PAGE_KEY, updated, localDate);
+      return updated;
+    });
 
     // 2. Network request with explicit targetState (idempotent)
     try {
@@ -115,8 +115,8 @@ export const HabitsPage = () => {
         action: targetState ? 'complete' : 'incomplete',
       });
       if (res.data?.completion !== undefined || res.data?.streaks) {
-        setHabits((prev) =>
-          prev.map((h) => {
+        setHabits((prev) => {
+          const next = prev.map((h) => {
             if (h.id === habit.id) {
               return {
                 ...h,
@@ -126,8 +126,10 @@ export const HabitsPage = () => {
               };
             }
             return h;
-          })
-        );
+          });
+          setDailyCache(CACHE_HABITS_PAGE_KEY, next, localDate);
+          return next;
+        });
       }
     } catch (e) {
       console.error('Failed to toggle habit:', e);

@@ -2,18 +2,20 @@ import React, { useState } from 'react';
 import { Check, Flame, BookOpen, Clock, Plus, Sparkles, Loader2 } from 'lucide-react';
 import { habitApi } from '../../api/habitApi';
 import { useNotification } from '../../context/NotificationContext';
+import { useDayWatch } from '../../context/DayWatchContext';
 import { getLocalDateString, isHabitScheduledToday, parseSpecificDays } from '../../utils/dateUtils';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, onOpenQuranModal, onOpenAddModal }) => {
+  const { todayDate } = useDayWatch();
   const { showToast } = useNotification();
   const [pendingHabitIds, setPendingHabitIds] = useState(new Set());
   const safeHabits = (Array.isArray(habitsList) ? habitsList : []).filter((h) => h && h.is_active !== false);
 
   // Show all scheduled habits for today (including Qur'an habits), strictly for today's day
-  const todayHabits = safeHabits.filter((h) => isHabitScheduledToday(h));
+  const todayHabits = safeHabits.filter((h) => isHabitScheduledToday(h, todayDate));
 
   const handleToggle = async (habit) => {
     if (pendingHabitIds.has(habit.id)) return;
@@ -143,8 +145,8 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
               <div
                 key={habit.id}
                 className={`rounded-2xl p-4 transition-all duration-200 border flex flex-col justify-between ${isDone
-                    ? 'bg-[#e1f3fd]/70 dark:bg-[#0f4d6b]/25 border-[#bce8fb] dark:border-[#0b5d81]'
-                    : 'glass-card glass-card-hover border-islamic-border-light dark:border-islamic-border-dark'
+                  ? 'bg-[#e1f3fd]/70 dark:bg-[#0f4d6b]/25 border-[#bce8fb] dark:border-[#0b5d81]'
+                  : 'glass-card glass-card-hover border-islamic-border-light dark:border-islamic-border-dark'
                   }`}
               >
                 <div>

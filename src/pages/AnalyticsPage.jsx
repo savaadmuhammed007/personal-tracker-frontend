@@ -25,9 +25,11 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { analyticsApi } from '../api/analyticsApi';
+import { useDayWatch } from '../context/DayWatchContext';
 import { StatCard } from '../components/common/UIComponents';
 
 export const AnalyticsPage = () => {
+  const { todayDate, revision } = useDayWatch();
   const [summary, setSummary] = useState(null);
   const [prayerStats, setPrayerStats] = useState([]);
   const [habitStats, setHabitStats] = useState([]);
@@ -57,7 +59,16 @@ export const AnalyticsPage = () => {
       }
     };
     fetchAllAnalytics();
-  }, []);
+
+    const handleDayChanged = () => {
+      fetchAllAnalytics();
+    };
+
+    window.addEventListener('app:day-changed', handleDayChanged);
+    return () => {
+      window.removeEventListener('app:day-changed', handleDayChanged);
+    };
+  }, [todayDate, revision]);
 
   const heatmapColors = {
     0: 'bg-slate-100 dark:bg-slate-800 border-slate-200/50 dark:border-slate-700/50',

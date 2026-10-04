@@ -2,18 +2,43 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { prayerApi } from '../api/prayerApi';
 import { settingsApi } from '../api/settingsApi';
 import { useAuth } from './AuthContext';
+import { useDayWatch } from './DayWatchContext';
 import { getLocalDateString } from '../utils/dateUtils';
 
 const PrayerContext = createContext(null);
 const PRAYER_CACHE_KEY = 'cached_prayer_data';
 
 const getInitialPrayerData = () => {
+  const todayStr = getLocalDateString();
   try {
-    const cached = localStorage.getItem(PRAYER_CACHE_KEY);
-    if (cached) return JSON.parse(cached);
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(PRAYER_CACHE_KEY) : null;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        // If cache is from today, use it directly
+        if (parsed.date === todayStr && Array.isArray(parsed.prayers) && parsed.prayers.length > 0) {
+          return parsed;
+        }
+        // If cache is from yesterday or previous day, retain location/timetable but reset completed prayer statuses
+        if (Array.isArray(parsed.prayers)) {
+          return {
+            ...parsed,
+            date: todayStr,
+            completed_count: 0,
+            completion_percentage: 0,
+            prayers: parsed.prayers.map((p) => ({
+              ...p,
+              status: 'pending',
+              completed_at: null,
+              notes: '',
+            })),
+          };
+        }
+      }
+    }
   } catch {}
   return {
-    date: '',
+    date: todayStr,
     completed_count: 0,
     total_count: 5,
     completion_percentage: 0,
@@ -43,6 +68,7 @@ const getInitialPrayerData = () => {
 
 export const PrayerProvider = ({ children }) => {
   const { refreshProfile } = useAuth();
+  const { todayDate, revision } = useDayWatch();
   const [data, setData] = useState(getInitialPrayerData);
   const [isLoading, setIsLoading] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -57,10 +83,14 @@ export const PrayerProvider = ({ children }) => {
     try {
       const res = await prayerApi.getToday(targetDate);
       if (res?.data && Array.isArray(res.data.prayers) && res.data.prayers.length > 0) {
-        setData(res.data);
+        const payloadWithDate = {
+          ...res.data,
+          date: targetDate,
+        };
+        setData(payloadWithDate);
         hasLoadedRef.current = true;
         try {
-          localStorage.setItem(PRAYER_CACHE_KEY, JSON.stringify(res.data));
+          localStorage.setItem(PRAYER_CACHE_KEY, JSON.stringify(payloadWithDate));
         } catch {}
       }
     } catch (err) {
@@ -70,14 +100,28 @@ export const PrayerProvider = ({ children }) => {
     }
   }, []);
 
+  // Sync on mount, on date rollover, or on revision trigger
   useEffect(() => {
-    fetchTodayPrayers();
+    fetchTodayPrayers(todayDate);
+
+    // Also listen to app day-changed custom event
+    const handleDayChanged = (e) => {
+      const newD = e.detail?.newDate || getLocalDateString();
+      fetchTodayPrayers(newD);
+    };
+
+    window.addEventListener('app:day-changed', handleDayChanged);
+
     // Polling every 5 minutes for countdown sync
     const interval = setInterval(() => {
-      fetchTodayPrayers();
+      fetchTodayPrayers(getLocalDateString());
     }, 300000);
-    return () => clearInterval(interval);
-  }, [fetchTodayPrayers]);
+
+    return () => {
+      window.removeEventListener('app:day-changed', handleDayChanged);
+      clearInterval(interval);
+    };
+  }, [fetchTodayPrayers, todayDate, revision]);
 
   const updateLocation = async (locationPayload) => {
     try {

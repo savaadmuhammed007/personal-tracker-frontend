@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { DayWatchProvider } from './context/DayWatchContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { PrayerProvider } from './context/PrayerContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -72,55 +73,57 @@ export function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <ThemeProvider>
-          <PrayerProvider>
-            <NotificationProvider>
-              <BrowserRouter>
-                <Routes>
-                  {/* Public Authentication Routes */}
-                  <Route
-                    path="/login"
-                    element={
-                      <PublicOnlyRoute>
-                        <LoginPage />
-                      </PublicOnlyRoute>
-                    }
-                  />
-                  <Route
-                    path="/register"
-                    element={
-                      <PublicOnlyRoute>
-                        <RegisterPage />
-                      </PublicOnlyRoute>
-                    }
-                  />
+        <DayWatchProvider>
+          <ThemeProvider>
+            <PrayerProvider>
+              <NotificationProvider>
+                <BrowserRouter>
+                  <Routes>
+                    {/* Public Authentication Routes */}
+                    <Route
+                      path="/login"
+                      element={
+                        <PublicOnlyRoute>
+                          <LoginPage />
+                        </PublicOnlyRoute>
+                      }
+                    />
+                    <Route
+                      path="/register"
+                      element={
+                        <PublicOnlyRoute>
+                          <RegisterPage />
+                        </PublicOnlyRoute>
+                      }
+                    />
 
-                  {/* Protected Application Workspace Routes */}
-                  <Route
-                    element={
-                      <ProtectedRoute>
-                        <Layout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/quran" element={<QuranPage />} />
-                    <Route path="/calendar" element={<CalendarPage />} />
-                    <Route path="/habits" element={<HabitsPage />} />
-                    <Route path="/awrad" element={<AwradPage />} />
-                    <Route path="/tasks" element={<TasksPage />} />
-                    <Route path="/analytics" element={<AnalyticsPage />} />
-                    <Route path="/missed" element={<MissedPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                  </Route>
+                    {/* Protected Application Workspace Routes */}
+                    <Route
+                      element={
+                        <ProtectedRoute>
+                          <Layout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/quran" element={<QuranPage />} />
+                      <Route path="/calendar" element={<CalendarPage />} />
+                      <Route path="/habits" element={<HabitsPage />} />
+                      <Route path="/awrad" element={<AwradPage />} />
+                      <Route path="/tasks" element={<TasksPage />} />
+                      <Route path="/analytics" element={<AnalyticsPage />} />
+                      <Route path="/missed" element={<MissedPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                    </Route>
 
-                  {/* Catch-all fallback */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </BrowserRouter>
-            </NotificationProvider>
-          </PrayerProvider>
-        </ThemeProvider>
+                    {/* Catch-all fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </BrowserRouter>
+              </NotificationProvider>
+            </PrayerProvider>
+          </ThemeProvider>
+        </DayWatchProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

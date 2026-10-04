@@ -23,11 +23,13 @@ import { QURAN_SURAHS, JUZ_PRESETS, QURAN_STATS } from '../data/quranData';
 import { habitApi } from '../api/habitApi';
 import { QuranLogModal } from '../components/modals/QuranLogModal';
 import { useNotification } from '../context/NotificationContext';
+import { useDayWatch } from '../context/DayWatchContext';
 import { Button } from '../components/common/UIComponents';
 import { getLocalDateString } from '../utils/dateUtils';
 
 export const QuranPage = () => {
   const { showToast } = useNotification();
+  const { todayDate, revision } = useDayWatch();
   const [quranHabit, setQuranHabit] = useState(null);
   const [completions, setCompletions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,16 @@ export const QuranPage = () => {
 
   useEffect(() => {
     fetchQuranData();
-  }, [fetchQuranData]);
+
+    const handleDayChanged = () => {
+      fetchQuranData();
+    };
+
+    window.addEventListener('app:day-changed', handleDayChanged);
+    return () => {
+      window.removeEventListener('app:day-changed', handleDayChanged);
+    };
+  }, [fetchQuranData, todayDate, revision]);
 
   // Current bookmark info
   const completion = quranHabit?.today_completion;
@@ -121,10 +132,11 @@ export const QuranPage = () => {
   const handleQuickLogFraction = async (presetValue) => {
     if (!quranHabit) return;
     const isCurrent = Math.abs(todayJuzRead - presetValue) < 0.01;
+    const localDate = getLocalDateString();
     try {
       if (isCurrent) {
         // Unclick / deselect: unmark completion for today
-        await habitApi.toggleHabit(quranHabit.id, getLocalDateString(), false);
+        await habitApi.toggleHabit(quranHabit.id, { date: localDate, is_completed: false, action: 'incomplete' });
         showToast(
           'Recitation Cleared',
           'Recitation fraction unselected for today.',
@@ -132,6 +144,7 @@ export const QuranPage = () => {
         );
       } else {
         await habitApi.logDetails(quranHabit.id, {
+          date: localDate,
           surah_name: currentSurahObj.name,
           last_surah_name: currentSurahObj.name,
           last_surah_number: currentSurahObj.number,

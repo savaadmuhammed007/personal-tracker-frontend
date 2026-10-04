@@ -13,9 +13,11 @@ import { analyticsApi } from '../api/analyticsApi';
 import { prayerApi } from '../api/prayerApi';
 import { habitApi } from '../api/habitApi';
 import { useNotification } from '../context/NotificationContext';
+import { useDayWatch } from '../context/DayWatchContext';
 import { Button } from '../components/common/UIComponents';
 
 export const MissedPage = () => {
+  const { todayDate, revision } = useDayWatch();
   const [missedData, setMissedData] = useState(null);
   const [days, setDays] = useState(7);
   const [category, setCategory] = useState('all');
@@ -36,7 +38,16 @@ export const MissedPage = () => {
 
   useEffect(() => {
     fetchMissed();
-  }, [fetchMissed]);
+
+    const handleDayChanged = () => {
+      fetchMissed();
+    };
+
+    window.addEventListener('app:day-changed', handleDayChanged);
+    return () => {
+      window.removeEventListener('app:day-changed', handleDayChanged);
+    };
+  }, [fetchMissed, todayDate, revision]);
 
   const handleMakeUpPrayer = async (prayerName, date) => {
     try {

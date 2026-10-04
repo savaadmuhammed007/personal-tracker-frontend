@@ -18,10 +18,12 @@ import { taskApi } from '../api/taskApi';
 import { TaskFormModal } from '../components/modals/TaskFormModal';
 import { AddDhikrTaskModal } from '../components/modals/AddDhikrTaskModal';
 import { useNotification } from '../context/NotificationContext';
+import { useDayWatch } from '../context/DayWatchContext';
 import { Button, Badge } from '../components/common/UIComponents';
 import { getLocalDateString } from '../utils/dateUtils';
 
 export const TasksPage = () => {
+  const { todayDate, revision } = useDayWatch();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pendingTaskIds, setPendingTaskIds] = useState(new Set());
@@ -52,7 +54,16 @@ export const TasksPage = () => {
 
   useEffect(() => {
     fetchTasks();
-  }, [fetchTasks]);
+
+    const handleDayChanged = () => {
+      fetchTasks();
+    };
+
+    window.addEventListener('app:day-changed', handleDayChanged);
+    return () => {
+      window.removeEventListener('app:day-changed', handleDayChanged);
+    };
+  }, [fetchTasks, todayDate, revision]);
 
   const handleToggle = async (task) => {
     if (pendingTaskIds.has(task.id)) return;

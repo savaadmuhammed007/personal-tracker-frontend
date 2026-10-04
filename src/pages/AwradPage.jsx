@@ -17,12 +17,14 @@ import { awradApi } from '../api/awradApi';
 import { AddAwradModal } from '../components/modals/AddAwradModal';
 import { AddDhikrTaskModal } from '../components/modals/AddDhikrTaskModal';
 import { useNotification } from '../context/NotificationContext';
+import { useDayWatch } from '../context/DayWatchContext';
 import { Button, Badge } from '../components/common/UIComponents';
 import { ProgressRing } from '../components/common/ProgressRing';
 import { getLocalDateString } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
 
 export const AwradPage = () => {
+  const { todayDate, revision } = useDayWatch();
   const [awradList, setAwradList] = useState([]);
   const [activeAwrad, setActiveAwrad] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -57,7 +59,16 @@ export const AwradPage = () => {
 
   useEffect(() => {
     fetchAwrad();
-  }, [fetchAwrad]);
+
+    const handleDayChanged = () => {
+      fetchAwrad();
+    };
+
+    window.addEventListener('app:day-changed', handleDayChanged);
+    return () => {
+      window.removeEventListener('app:day-changed', handleDayChanged);
+    };
+  }, [fetchAwrad, todayDate, revision]);
 
   const handleTap = async () => {
     if (!activeAwrad) return;

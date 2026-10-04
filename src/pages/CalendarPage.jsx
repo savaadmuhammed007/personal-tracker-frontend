@@ -13,14 +13,16 @@ import {
 } from 'lucide-react';
 import { calendarApi } from '../api/calendarApi';
 import { ProgressRing } from '../components/common/ProgressRing';
+import { useDayWatch } from '../context/DayWatchContext';
 import { getLocalDateString } from '../utils/dateUtils';
 
 export const CalendarPage = () => {
+  const { todayDate, revision } = useDayWatch();
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
   const [monthData, setMonthData] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(getLocalDateString());
+  const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
   const [dayDetails, setDayDetails] = useState(null);
   const [loadingMonth, setLoadingMonth] = useState(true);
   const [loadingDay, setLoadingDay] = useState(false);
@@ -63,13 +65,26 @@ export const CalendarPage = () => {
 
   useEffect(() => {
     fetchMonthData();
-  }, [fetchMonthData]);
+  }, [fetchMonthData, todayDate, revision]);
 
   useEffect(() => {
     if (selectedDate) {
       fetchDayDetails(selectedDate);
     }
-  }, [selectedDate, fetchDayDetails]);
+  }, [selectedDate, fetchDayDetails, todayDate, revision]);
+
+  // When day changes, if selected date was the previous day, update to today's date
+  useEffect(() => {
+    const handleDayChanged = (e) => {
+      const newD = e.detail?.newDate || getLocalDateString();
+      setSelectedDate(newD);
+    };
+
+    window.addEventListener('app:day-changed', handleDayChanged);
+    return () => {
+      window.removeEventListener('app:day-changed', handleDayChanged);
+    };
+  }, []);
 
   const handlePrevMonth = () => {
     if (currentMonth === 1) {
