@@ -211,10 +211,10 @@ export const DynamicBentoLayout = React.forwardRef<HTMLDivElement, DynamicBentoL
                   layoutId={`bento-${item.id}`}
                   onClick={() => setActiveId(isActive ? null : item.id)}
                   className={`
-                    relative group cursor-pointer overflow-hidden rounded-xl border transition-all duration-200
-                    ${isActive ? "w-full md:w-[60%] min-h-[220px] md:min-h-0 z-10 shadow-md" : ""}
-                    ${isOther ? "w-full md:w-[40%] h-[56px] md:h-auto flex-1 opacity-70 hover:opacity-100" : ""}
-                    ${activeId === null ? "w-full h-[105px] sm:h-[110px]" : ""}
+                    relative group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-200 flex flex-col justify-between
+                    ${isActive ? "w-full md:w-[60%] min-h-[220px] md:min-h-[230px] z-10 shadow-md" : ""}
+                    ${isOther ? "w-full md:w-[40%] min-h-[64px] md:min-h-0 h-auto flex-1 opacity-70 hover:opacity-100" : ""}
+                    ${activeId === null ? "w-full min-h-[115px] sm:min-h-[120px] h-auto" : ""}
                     bg-slate-50/80 dark:bg-[#0a141e]/80 hover:bg-white dark:hover:bg-[#0e1d2b]
                     border-slate-200/90 dark:border-white/[0.06]
                   `}

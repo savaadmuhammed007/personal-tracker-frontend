@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 export const Button = ({
   children,
@@ -42,42 +43,60 @@ export const Button = ({
   );
 };
 
-export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-lg' }) => {
+export const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  footer = null,
+  maxWidth = 'max-w-lg',
+}) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 overscroll-contain overflow-hidden">
-      {/* Backdrop */}
+  const modalNode = (
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center p-2 sm:p-4 overscroll-contain pointer-events-auto">
+      {/* Dark Frosted Full-Screen Backdrop (Covers entire screen, Header, Sidebar, and Mobile Bottom Bar) */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity animate-fade-in -z-10"
         onClick={onClose}
       />
 
-      {/* Modal Box */}
+      {/* Centered Modal Popup Card (Strictly bound to max 85dvh with min-h-0 to guarantee footer is always on screen) */}
       <div
-        className={`relative w-full ${maxWidth} max-h-[88dvh] sm:max-h-[85vh] bg-white dark:bg-islamic-card-dark rounded-3xl shadow-2xl border border-islamic-border-light dark:border-islamic-border-dark flex flex-col z-10 animate-scale-up overflow-hidden my-auto`}
+        className={`relative w-full ${maxWidth} max-h-[85vh] max-h-[85dvh] min-h-0 bg-white dark:bg-islamic-card-dark rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-200/90 dark:border-slate-700/80 flex flex-col z-20 animate-scale-up overflow-hidden`}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Sticky Header */}
-        <div className="px-4 sm:px-6 py-3.5 border-b border-islamic-border-light/60 dark:border-islamic-border-dark/60 flex items-center justify-between shrink-0 bg-white/95 dark:bg-islamic-card-dark/95 backdrop-blur-sm z-10">
-          <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+        {/* Modal Header (Fixed at top of popup) */}
+        <div className="px-4 sm:px-6 py-3 border-b border-islamic-border-light/60 dark:border-islamic-border-dark/60 flex items-center justify-between shrink-0 bg-white/95 dark:bg-islamic-card-dark/95 backdrop-blur-sm z-20">
+          <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 min-w-0">
             {title}
-          </h3>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-islamic-subtle-light dark:hover:bg-islamic-subtle-dark transition-colors cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-islamic-subtle-light dark:hover:bg-islamic-subtle-dark transition-colors cursor-pointer text-sm font-bold shrink-0 ml-2"
+            title="Close"
           >
             ✕
           </button>
         </div>
 
-        {/* Scrollable Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
+        {/* Scrollable Body (Scrolls smoothly in middle) */}
+        <div className="p-3.5 sm:p-6 overflow-y-auto min-h-0 flex-1 overscroll-contain scrollbar-thin">
           {children}
         </div>
+
+        {/* Dedicated Fixed Action Footer (Fixed at bottom of popup, ALWAYS in front & 100% visible) */}
+        {footer && (
+          <div className="px-3.5 sm:px-6 py-2.5 sm:py-3 border-t border-slate-200/80 dark:border-white/10 bg-slate-50/98 dark:bg-[#071924]/98 backdrop-blur-sm shrink-0 rounded-b-3xl flex items-center gap-2.5 z-20">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 };
 
 export const Badge = ({ children, variant = 'default', className = '' }) => {

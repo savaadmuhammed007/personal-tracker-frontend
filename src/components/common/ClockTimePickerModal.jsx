@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Clock, Check, X, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
 
 const TIME_PRESETS = [
@@ -163,13 +164,14 @@ export const ClockTimePickerModal = ({
 
   const currentAngle = mode === 'hours' ? selectedHour * 30 : selectedMinute * 6;
 
-  return (
+  const modalNode = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs select-none overscroll-contain overflow-y-auto"
+      className="fixed inset-0 z-[999999] flex items-center justify-center p-2 sm:p-4 select-none overscroll-contain pointer-events-auto"
       onClick={onClose}
     >
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity -z-10 animate-fade-in" />
       <div
-        className="w-full max-w-[310px] rounded-3xl bg-white dark:bg-[#071924] border border-slate-200 dark:border-[#0f344a] shadow-2xl overflow-hidden animate-scale-up my-auto max-h-[95vh] flex flex-col"
+        className="w-full max-w-[310px] rounded-3xl bg-white dark:bg-[#071924] border border-slate-200 dark:border-[#0f344a] shadow-2xl overflow-hidden animate-scale-up max-h-[88vh] max-h-[88dvh] min-h-0 flex flex-col z-20"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -419,4 +421,6 @@ export const ClockTimePickerModal = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 };

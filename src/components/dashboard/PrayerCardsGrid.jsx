@@ -101,37 +101,37 @@ export const PrayerCardsGrid = () => {
               </div>
 
               {/* Status / Completion Time Box */}
-              <div className="mt-2 pt-2.5 sm:pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
-                <div>
+              <div className="mt-2 pt-2.5 sm:pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between gap-1.5 min-w-0">
+                <div className="min-w-0 truncate">
                   {isCompleted ? (
-                    <span className="text-xs font-semibold text-[#076e9d] dark:text-[#3dc3f3] flex items-center gap-1">
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      {completionTimeDisplay ? `at ${completionTimeDisplay}` : 'Completed'}
+                    <span className="text-xs font-semibold text-[#076e9d] dark:text-[#3dc3f3] flex items-center gap-1 truncate">
+                      <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />
+                      <span className="truncate">{completionTimeDisplay ? `at ${completionTimeDisplay}` : 'Completed'}</span>
                     </span>
                   ) : isMissed ? (
                     <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
                       Missed
                     </span>
                   ) : (
-                    <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
-                      Tap to complete
+                    <span className="text-xs font-medium text-slate-400 dark:text-slate-500 truncate block">
+                      Tap to log
                     </span>
                   )}
                 </div>
 
                 {/* Quick Action Checkmark / Missed Toggle */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   {!isCompleted && !isMissed && (
                     <button
                       onClick={(e) => handleSetMissed(prayer.prayer_name, e)}
                       title="Mark as Missed"
-                      className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 text-[10px] text-slate-400 hover:text-rose-500 px-1.5 py-0.5 rounded hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-opacity"
+                      className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 text-[10px] text-slate-400 hover:text-rose-500 px-1 py-0.5 rounded hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-opacity whitespace-nowrap"
                     >
                       Missed
                     </button>
                   )}
                   <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0 ${
                       isCompleted
                         ? 'bg-[#088ac1] text-white shadow-xs'
                         : isMissed

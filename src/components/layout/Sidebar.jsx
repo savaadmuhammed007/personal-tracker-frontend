@@ -10,6 +10,7 @@ import {
   BarChart3,
   RotateCcw,
   Settings,
+  Wallet,
   LogOut,
   Sun,
   Moon,
@@ -39,6 +40,7 @@ export const Sidebar = () => {
     if (pathname.startsWith('/habits')) return 'habits';
     if (pathname.startsWith('/awrad')) return 'awrad';
     if (pathname.startsWith('/tasks')) return 'tasks';
+    if (pathname.startsWith('/expenses')) return 'expenses';
     if (pathname.startsWith('/analytics')) return 'analytics';
     if (pathname.startsWith('/missed')) return 'missed';
     if (pathname.startsWith('/settings')) return 'settings';
@@ -291,6 +293,47 @@ export const Sidebar = () => {
             className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-amber-950/40 transition-all cursor-pointer active:scale-[0.98]"
           >
             View Tasks <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+    {
+      id: 'expenses',
+      label: 'Expense Tracker',
+      to: '/expenses',
+      color: '#10b981',
+      icon: <Wallet className="w-5 h-5" />,
+      content: (
+        <div className="h-full w-full flex flex-col justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+              Finances & Accounts
+            </span>
+            <h3 className="font-bold text-xl sm:text-2xl text-slate-900 dark:text-white tracking-tight mt-0.5">
+              Expense Tracker
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
+              Track daily expenses, incomes, opening balances, cash liquidity, and UPI accounts (Kotak & Canara).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 my-auto">
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 flex flex-col items-center text-center">
+              <span className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">UPI + Cash</span>
+              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Accounts</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 flex flex-col items-center text-center">
+              <span className="text-lg font-bold font-mono text-[#088ac1] dark:text-[#3dc3f3]">Daily</span>
+              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Ledger Flow</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate('/expenses')}
+            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-950/40 transition-all cursor-pointer active:scale-[0.98]"
+          >
+            Open Expense Tracker <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       ),

@@ -19,6 +19,7 @@ import { TasksPage } from './pages/TasksPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { MissedPage } from './pages/MissedPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { ExpensesPage } from './pages/ExpensesPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 
@@ -111,6 +112,7 @@ export function App() {
                       <Route path="/habits" element={<HabitsPage />} />
                       <Route path="/awrad" element={<AwradPage />} />
                       <Route path="/tasks" element={<TasksPage />} />
+                      <Route path="/expenses" element={<ExpensesPage />} />
                       <Route path="/analytics" element={<AnalyticsPage />} />
                       <Route path="/missed" element={<MissedPage />} />
                       <Route path="/settings" element={<SettingsPage />} />

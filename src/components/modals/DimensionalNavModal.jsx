@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -332,9 +333,13 @@ export const DimensionalNavModal = ({ isOpen, onClose }) => {
     },
   ];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 dark:bg-black/75 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-white/95 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+  const modalNode = (
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center p-3 sm:p-6 pointer-events-auto overscroll-contain">
+      <div
+        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity -z-10 animate-fade-in"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-2xl bg-white/95 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-2xl z-20 animate-scale-up">
         {/* Top Close Bar */}
         <div className="px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/60">
           <div className="flex items-center gap-2">
@@ -366,4 +371,6 @@ export const DimensionalNavModal = ({ isOpen, onClose }) => {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 };

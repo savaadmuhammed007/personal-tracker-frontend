@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Bell,
   BellRing,
@@ -79,19 +80,16 @@ export const NotificationPermissionModal = ({ isOpen, onClose }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="min-h-screen px-3 sm:px-4 py-4 text-center flex items-end sm:items-center justify-center">
-        {/* Backdrop */}
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-          onClick={onClose}
-        />
+  const modalNode = (
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center p-2 sm:p-4 pointer-events-auto overscroll-contain">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity -z-10 animate-fade-in"
+        onClick={onClose}
+      />
 
-        {/* Modal Sheet Container - Bottom sheet on mobile, centered card on tablet/desktop */}
-        <div className="relative inline-block w-full max-w-lg max-h-[92vh] overflow-y-auto p-5 sm:p-6 text-left align-middle transition-all transform bg-white dark:bg-islamic-card-dark rounded-t-3xl sm:rounded-3xl shadow-2xl border border-islamic-border-light dark:border-islamic-border-dark z-10 animate-slide-up">
-          {/* Mobile Drag Indicator Handle */}
-          <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-3 sm:hidden" />
+      {/* Modal Sheet Container - Centered card */}
+      <div className="relative w-full max-w-lg max-h-[86vh] max-h-[86dvh] min-h-0 flex flex-col p-5 sm:p-6 text-left align-middle transition-all bg-white dark:bg-islamic-card-dark rounded-3xl shadow-2xl border border-islamic-border-light dark:border-islamic-border-dark z-20 animate-scale-up overflow-hidden">
 
           {/* Close button */}
           <button
@@ -217,6 +215,7 @@ export const NotificationPermissionModal = ({ isOpen, onClose }) => {
           </div>
         </div>
       </div>
-    </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 };

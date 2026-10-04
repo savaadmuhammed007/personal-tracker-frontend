@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   MapPin,
   Calendar,
@@ -191,10 +192,14 @@ export const LocationModal = ({ isOpen, onClose }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+  const modalNode = (
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center p-2 sm:p-4 pointer-events-auto overscroll-contain">
       <div
-        className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-islamic-border-light dark:border-islamic-border-dark rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity -z-10 animate-fade-in"
+        onClick={onClose}
+      />
+      <div
+        className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-islamic-border-light dark:border-islamic-border-dark rounded-3xl shadow-2xl overflow-hidden max-h-[86vh] max-h-[86dvh] min-h-0 flex flex-col z-20 animate-scale-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -516,8 +521,9 @@ export const LocationModal = ({ isOpen, onClose }) => {
             Done
           </button>
         </div>
-
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 };

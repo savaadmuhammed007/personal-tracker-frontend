@@ -5,6 +5,7 @@ import { QuranSection } from '../components/dashboard/QuranSection';
 import { PrayerCardsGrid } from '../components/dashboard/PrayerCardsGrid';
 import { DailyHabitsSection } from '../components/dashboard/DailyHabitsSection';
 import { DailyTasksSummary } from '../components/dashboard/DailyTasksSummary';
+import { DailyExpensesMini } from '../components/dashboard/DailyExpensesMini';
 import { ChronologicalTimelineMini } from '../components/dashboard/ChronologicalTimelineMini';
 import { QuranLogModal } from '../components/modals/QuranLogModal';
 import { HabitFormModal } from '../components/modals/HabitFormModal';
@@ -266,6 +267,11 @@ export const HomePage = () => {
           onToggleTask={handleOptimisticToggleTask}
           onOpenAddModal={() => setIsTaskModalOpen(true)}
         />
+      </div>
+
+      {/* 7. Daily Expenses & Cash Flow Mini */}
+      <div id="expenses-mini-section">
+        <DailyExpensesMini onDataChanged={fetchDashboardData} />
       </div>
 
       {/* 8. Today's Chronological Activity Timeline */}

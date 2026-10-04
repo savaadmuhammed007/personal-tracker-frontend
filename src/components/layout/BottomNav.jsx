@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -10,6 +11,7 @@ import {
   BarChart3,
   RotateCcw,
   Settings,
+  Wallet,
   Menu,
   X,
   Sun,
@@ -52,20 +54,26 @@ export const BottomNav = () => {
   // Primary 4 tabs that fit effortlessly on every mobile device width without horizontal scroll
   const primaryTabs = [
     { to: '/', label: 'Home', icon: LayoutDashboard },
+    { to: '/expenses', label: 'Expenses', icon: Wallet },
     { to: '/habits', label: 'Habits', icon: CheckCircle2 },
     { to: '/quran', label: 'Qur’an', icon: BookOpen },
-    { to: '/tasks', label: 'Tasks', icon: CheckSquare },
-
   ];
 
   // Secondary items accessible via the sleek "More" sheet
   const secondaryItems = [
     {
+      to: '/tasks',
+      label: 'Tasks',
+      desc: 'Priority & daily tasks',
+      icon: CheckSquare,
+      color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60',
+    },
+    {
       to: '/awrad',
       label: 'Awrad',
-      desc: 'Daily Awrad',
+      desc: 'Daily Awrad & Tasbih',
       icon: Repeat,
-      color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60',
+      color: 'text-cyan-500 bg-cyan-50 dark:bg-cyan-950/40 border-cyan-200 dark:border-cyan-800/60',
     },
     {
       to: '/calendar',
@@ -79,7 +87,7 @@ export const BottomNav = () => {
       label: 'Analytics',
       desc: 'Charts & statistics',
       icon: BarChart3,
-      color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60',
+      color: 'text-blue-500 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/60',
     },
     {
       to: '/missed',
@@ -202,8 +210,8 @@ export const BottomNav = () => {
       </div>
 
       {/* "More" Bottom Sheet Overlay */}
-      {isMoreOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+      {isMoreOpen && typeof document !== 'undefined' && createPortal(
+        <div className="md:hidden fixed inset-0 z-[99999] flex flex-col justify-end pointer-events-auto">
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-fade-in"
@@ -307,7 +315,8 @@ export const BottomNav = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
