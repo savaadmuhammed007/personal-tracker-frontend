@@ -14,24 +14,37 @@ import {
 import { calendarApi } from '../api/calendarApi';
 import { ProgressRing } from '../components/common/ProgressRing';
 import { useDayWatch } from '../context/DayWatchContext';
-import { getLocalDateString } from '../utils/dateUtils';
+import { getLocalDateString, getDailyCache, setDailyCache } from '../utils/dateUtils';
+
+const CACHE_CALENDAR_MONTH_PREFIX = 'cached_calendar_month_';
+const CACHE_CALENDAR_DAY_PREFIX = 'cached_calendar_day_';
 
 export const CalendarPage = () => {
   const { todayDate, revision } = useDayWatch();
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
-  const [monthData, setMonthData] = useState(null);
   const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
-  const [dayDetails, setDayDetails] = useState(null);
-  const [loadingMonth, setLoadingMonth] = useState(true);
+
+  const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+  const [monthData, setMonthData] = useState(() => getDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${monthKey}`, null));
+  const [dayDetails, setDayDetails] = useState(() => getDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${getLocalDateString()}`, null));
+  const [loadingMonth, setLoadingMonth] = useState(() => !getDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${monthKey}`, null));
   const [loadingDay, setLoadingDay] = useState(false);
 
   const fetchMonthData = useCallback(async () => {
-    setLoadingMonth(true);
+    const mKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    const cached = getDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${mKey}`, null);
+    if (cached) {
+      setMonthData(cached);
+      setLoadingMonth(false);
+    } else {
+      setLoadingMonth(true);
+    }
     try {
       const res = await calendarApi.getMonth(currentYear, currentMonth);
       setMonthData(res.data);
+      setDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${mKey}`, res.data);
     } catch (e) {
       console.error('Failed to load month calendar:', e);
     } finally {
@@ -40,10 +53,17 @@ export const CalendarPage = () => {
   }, [currentYear, currentMonth]);
 
   const fetchDayDetails = useCallback(async (dateStr) => {
-    setLoadingDay(true);
+    const cached = getDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${dateStr}`, null);
+    if (cached) {
+      setDayDetails(cached);
+      setLoadingDay(false);
+    } else {
+      setLoadingDay(true);
+    }
     try {
       const res = await calendarApi.getDayDetails(dateStr);
       setDayDetails(res.data);
+      setDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${dateStr}`, res.data);
     } catch (e) {
       console.error('Failed to load day details:', e);
     } finally {
