@@ -68,7 +68,7 @@ const getInitialPrayerData = () => {
 
 export const PrayerProvider = ({ children }) => {
   const { refreshProfile } = useAuth();
-  const { todayDate, revision } = useDayWatch();
+  const { todayDate, revision, triggerRevision } = useDayWatch();
   const [data, setData] = useState(getInitialPrayerData);
   const [isLoading, setIsLoading] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -250,6 +250,19 @@ export const PrayerProvider = ({ children }) => {
         status: computedNextStatus,
         notes,
       });
+
+      // Invalidate calendar & timeline caches so CalendarPage and Timeline update immediately
+      try {
+        localStorage.removeItem(`cached_calendar_day_${localDate}`);
+        sessionStorage.removeItem(`cached_calendar_day_${localDate}`);
+        localStorage.removeItem('cached_daily_timeline');
+        sessionStorage.removeItem('cached_daily_timeline');
+      } catch {}
+
+      if (triggerRevision) {
+        triggerRevision();
+      }
+
       // Background silent refresh for exact server streaks and timestamps
       const res = await prayerApi.getToday(localDate);
       if (res?.data && Array.isArray(res.data.prayers) && res.data.prayers.length > 0) {
