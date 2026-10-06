@@ -65,6 +65,7 @@ import { TransactionModal } from '../components/modals/TransactionModal';
 import { OpeningBalanceModal } from '../components/modals/OpeningBalanceModal';
 import { AccountFormModal } from '../components/modals/AccountFormModal';
 import { AccountStatementModal } from '../components/modals/AccountStatementModal';
+import { ExpenseAnalyticsView } from '../components/expenses/ExpenseAnalyticsView';
 
 const CACHE_ACCOUNTS_KEY = 'cached_expense_accounts';
 const CACHE_DAILY_PREFIX = 'cached_daily_report_';
@@ -214,7 +215,63 @@ export const ExpensesPage = () => {
     }
   }, [activeTab, loadAnalyticsData, loadLedgerTransactions, refreshKey]);
 
-  const handleRefresh = () => {
+  const handleRefresh = (optimisticTx, isSilentServerSync = false) => {
+    if (optimisticTx && !isSilentServerSync) {
+      const numAmt = parseFloat(optimisticTx.amount) || 0;
+      // 1. Instant Account Balance Update
+      setAccounts((prevAccounts) => {
+        return prevAccounts.map((acc) => {
+          if (optimisticTx.transaction_type === 'expense' && acc.id === optimisticTx.account) {
+            return {
+              ...acc,
+              current_balance: (acc.current_balance || 0) - numAmt,
+              total_expense: (acc.total_expense || 0) + numAmt,
+            };
+          }
+          if (optimisticTx.transaction_type === 'income' && acc.id === optimisticTx.account) {
+            return {
+              ...acc,
+              current_balance: (acc.current_balance || 0) + numAmt,
+              total_income: (acc.total_income || 0) + numAmt,
+            };
+          }
+          if (optimisticTx.transaction_type === 'transfer') {
+            if (acc.id === optimisticTx.account) {
+              return { ...acc, current_balance: (acc.current_balance || 0) - numAmt };
+            }
+            if (acc.id === optimisticTx.to_account) {
+              return { ...acc, current_balance: (acc.current_balance || 0) + numAmt };
+            }
+          }
+          return acc;
+        });
+      });
+
+      // 2. Instant Daily Report Update
+      if (optimisticTx.date === selectedDate) {
+        setDailyReport((prevRep) => {
+          if (!prevRep) return prevRep;
+          const currentTxs = prevRep.today_transactions || [];
+          const tempTx = {
+            id: optimisticTx.id || `temp-${Date.now()}`,
+            ...optimisticTx,
+            account_name: accounts.find((a) => a.id === optimisticTx.account)?.name || 'Account',
+          };
+          const isExp = optimisticTx.transaction_type === 'expense';
+          const isInc = optimisticTx.transaction_type === 'income';
+          const newInc = isInc ? (prevRep.total_income || 0) + numAmt : (prevRep.total_income || 0);
+          const newExp = isExp ? (prevRep.total_expense || 0) + numAmt : (prevRep.total_expense || 0);
+          return {
+            ...prevRep,
+            total_income: newInc,
+            total_expense: newExp,
+            net_flow: newInc - newExp,
+            today_transactions: [tempTx, ...currentTxs],
+          };
+        });
+      }
+    }
+
     setRefreshKey((k) => k + 1);
   };
 
@@ -1277,162 +1334,12 @@ export const ExpensesPage = () => {
 
       {/* TAB 3: MONTHLY ANALYTICS & CHARTS */}
       {activeTab === 'analytics' && (
-        <div className="space-y-6">
-          {/* Month Selector Bar */}
-          <div className="p-4 rounded-3xl bg-white dark:bg-[#0b1822] border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Select Month:
-              </span>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none cursor-pointer"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                Month: <strong className="text-slate-900 dark:text-white">{analyticsData?.month_name}</strong>
-              </span>
-            </div>
-          </div>
-
-          {/* Monthly KPI Bento Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="p-4 rounded-3xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 flex flex-col justify-between min-w-0">
-              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate">
-                Monthly Income
-              </span>
-              <div className="text-xl sm:text-2xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                +{formatCurrency(analyticsData?.monthly_income ?? 0)}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-3xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-800/40 flex flex-col justify-between min-w-0">
-              <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider truncate">
-                Monthly Expenses
-              </span>
-              <div className="text-xl sm:text-2xl font-extrabold font-mono text-rose-600 dark:text-rose-400 mt-1 truncate">
-                -{formatCurrency(analyticsData?.monthly_expense ?? 0)}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-3xl bg-white dark:bg-[#0b1822] border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between min-w-0">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-                Monthly Savings / Net
-              </span>
-              <div className="min-w-0 mt-1">
-                <div
-                  className={`text-xl sm:text-2xl font-extrabold font-mono truncate ${
-                    (analyticsData?.monthly_savings || 0) >= 0
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : 'text-rose-600 dark:text-rose-400'
-                  }`}
-                >
-                  {(analyticsData?.monthly_savings || 0) >= 0 ? '+' : ''}
-                  {formatCurrency(analyticsData?.monthly_savings ?? 0)}
-                </div>
-                <p className="text-[10px] text-slate-400 mt-0.5 truncate">
-                  Savings Rate: {analyticsData?.savings_rate || 0}%
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-3xl bg-gradient-to-br from-cyan-600/10 to-[#088ac1]/10 dark:from-cyan-950/40 dark:to-[#0b1822] border border-cyan-200/60 dark:border-cyan-800/40 flex flex-col justify-between min-w-0">
-              <span className="text-[11px] font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider flex items-center gap-1 truncate">
-                <HeartHandshake className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">Sadaqah & Charity</span>
-              </span>
-              <div className="min-w-0 mt-1">
-                <div className="text-xl sm:text-2xl font-extrabold font-mono text-cyan-700 dark:text-cyan-300 truncate">
-                  {formatCurrency(analyticsData?.sadaqah_spent ?? 0)}
-                </div>
-                <p className="text-[10px] text-cyan-600 dark:text-cyan-400 mt-0.5 truncate">
-                  Virtuous giving
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Daily Trend Chart (Income vs Expense) */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-[#0b1822] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-[#088ac1] dark:text-[#3dc3f3]" />
-                Daily Income vs Expense Trend
-              </h3>
-              <span className="text-xs text-slate-400">Values in ₹ INR</span>
-            </div>
-
-            <div className="h-64 sm:h-72 w-full">
-              {analyticsData?.daily_trend && analyticsData.daily_trend.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analyticsData.daily_trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <XAxis dataKey="label" stroke="#94a3b8" fontSize={10} tickLine={false} />
-                    <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} />
-                    <Tooltip
-                      formatter={(val, name) => [`₹${Number(val).toLocaleString('en-IN')}`, name]}
-                      contentStyle={{
-                        backgroundColor: '#0b1822',
-                        borderRadius: '12px',
-                        border: '1px solid #163246',
-                        color: '#fff',
-                        fontSize: '12px',
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                    <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="expense" name="Expense" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                  No transaction data available for this month
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Top Categories Breakdown */}
-          {analyticsData?.top_categories && analyticsData.top_categories.length > 0 && (
-            <div className="p-5 rounded-3xl bg-white dark:bg-[#0b1822] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
-              <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2">
-                <PieChartIcon className="w-4 h-4 text-purple-500" />
-                Monthly Spending by Category
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {analyticsData.top_categories.map((c, i) => (
-                  <div
-                    key={i}
-                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                        {c.category}
-                      </span>
-                      <span className="text-xs font-extrabold font-mono text-rose-600 dark:text-rose-400">
-                        {formatCurrency(c.amount)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] text-slate-400">
-                      <span>{c.count} transactions</span>
-                      <span>{c.percentage}% of total</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[#088ac1]"
-                        style={{ width: `${Math.min(c.percentage, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <ExpenseAnalyticsView
+          analyticsData={analyticsData}
+          selectedMonth={selectedMonth}
+          setSelectedMonth={setSelectedMonth}
+          loading={loading}
+        />
       )}
 
       {/* TAB 4: ALL RECORDS & SEARCHABLE LEDGER */}

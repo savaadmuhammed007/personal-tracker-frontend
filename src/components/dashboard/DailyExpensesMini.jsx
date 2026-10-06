@@ -61,8 +61,51 @@ export const DailyExpensesMini = ({ onDataChanged }) => {
     setIsTxModalOpen(true);
   };
 
-  const handleSaved = () => {
-    loadData();
+  const handleSaved = (optimisticTx, isFullRefresh = true) => {
+    if (optimisticTx) {
+      const amt = Number(optimisticTx.amount || 0);
+      setDailyReport((prev) => {
+        if (!prev) return prev;
+        let newIncome = Number(prev.total_income || 0);
+        let newExpense = Number(prev.total_expense || 0);
+        let newClosing = Number(prev.closing_balance || 0);
+
+        if (optimisticTx.transaction_type === 'income') {
+          newIncome += amt;
+          newClosing += amt;
+        } else if (optimisticTx.transaction_type === 'expense') {
+          newExpense += amt;
+          newClosing -= amt;
+        }
+        return {
+          ...prev,
+          total_income: newIncome,
+          total_expense: newExpense,
+          closing_balance: newClosing,
+          net_flow: newIncome - newExpense,
+        };
+      });
+
+      setAccounts((prev) => {
+        if (!Array.isArray(prev)) return prev;
+        return prev.map((acc) => {
+          if (Number(acc.id) === Number(optimisticTx.account)) {
+            const currentBal = Number(acc.current_balance || 0);
+            const delta = optimisticTx.transaction_type === 'income' ? amt : -amt;
+            return { ...acc, current_balance: currentBal + delta };
+          }
+          if (optimisticTx.transaction_type === 'transfer' && Number(acc.id) === Number(optimisticTx.to_account)) {
+            const currentBal = Number(acc.current_balance || 0);
+            return { ...acc, current_balance: currentBal + amt };
+          }
+          return acc;
+        });
+      });
+    }
+
+    if (isFullRefresh) {
+      loadData();
+    }
     if (onDataChanged) onDataChanged();
   };
 

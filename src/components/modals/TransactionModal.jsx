@@ -168,8 +168,8 @@ export const TransactionModal = ({
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       showToast('Invalid Amount', 'Please enter a valid amount greater than 0', 'error');
@@ -186,7 +186,6 @@ export const TransactionModal = ({
       return;
     }
 
-    setSubmitting(true);
     const payload = {
       transaction_type: type,
       amount: parsedAmount.toFixed(2),
@@ -201,25 +200,39 @@ export const TransactionModal = ({
       reference_id: referenceId.trim(),
     };
 
-    try {
-      if (transaction?.id) {
-        await expenseApi.updateTransaction(transaction.id, payload);
-        showToast('Updated', 'Transaction updated successfully');
-      } else {
-        await expenseApi.createTransaction(payload);
-        showToast(
-          type === 'expense' ? 'Expense Added' : type === 'income' ? 'Income Logged' : 'Transfer Completed',
-          `₹${parsedAmount.toLocaleString('en-IN')} recorded.`
-        );
-      }
-      if (onSaved) onSaved();
-      onClose();
-    } catch (err) {
-      const msg = err.response?.data?.error || err.response?.data?.detail || 'Failed to save transaction';
-      showToast('Error', msg, 'error');
-    } finally {
-      setSubmitting(false);
+    // 1. Instant 0ms dismiss & optimistic state update
+    onClose();
+    if (onSaved) {
+      onSaved({ ...payload, id: transaction?.id || `temp-${Date.now()}` }, false);
     }
+
+    showToast(
+      transaction?.id
+        ? 'Updated'
+        : type === 'expense'
+        ? '✓ Expense Added'
+        : type === 'income'
+        ? '✓ Income Logged'
+        : '✓ Transfer Completed',
+      `₹${parsedAmount.toLocaleString('en-IN')} recorded.`
+    );
+
+    // 2. Perform background server sync without blocking the user
+    (async () => {
+      try {
+        if (transaction?.id) {
+          const res = await expenseApi.updateTransaction(transaction.id, payload);
+          if (onSaved) onSaved(res.data, true);
+        } else {
+          const res = await expenseApi.createTransaction(payload);
+          if (onSaved) onSaved(res.data, true);
+        }
+      } catch (err) {
+        const msg = err.response?.data?.error || err.response?.data?.detail || 'Failed to sync transaction with server';
+        showToast('Sync Error', msg, 'error');
+        if (onSaved) onSaved(); // Fallback reconcile
+      }
+    })();
   };
 
   const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
