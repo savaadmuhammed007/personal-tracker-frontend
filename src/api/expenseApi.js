@@ -18,5 +18,8 @@ export const expenseApi = {
 
   // Reports & Analytics
   getDailyReport: (date) => api.get('/expenses/daily-report/', { params: { date } }),
-  getSummaryAnalytics: (params) => api.get('/expenses/summary/', { params }),
+  getSummaryAnalytics: (params) => {
+    const queryParams = typeof params === 'string' ? { month: params } : (params || {});
+    return api.get('/expenses/summary/', { params: queryParams });
+  },
 };

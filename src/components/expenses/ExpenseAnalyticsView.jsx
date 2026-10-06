@@ -103,6 +103,7 @@ export const ExpenseAnalyticsView = ({
   selectedMonth,
   setSelectedMonth,
   loading = false,
+  onAddTransaction,
 }) => {
   const [chartViewMode, setChartViewMode] = useState('daily'); // 'daily' | 'cumulative' | 'history6m'
   const [activeCategoryTab, setActiveCategoryTab] = useState('expense'); // 'expense' | 'income'
@@ -136,15 +137,27 @@ export const ExpenseAnalyticsView = ({
     } else if (preset === 'last') {
       const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const y = prev.getFullYear();
-      const m = String(prev.getMonth() + 1).padStart(2, '0');
+      const newM = String(prev.getMonth() + 1).padStart(2, '0');
       setSelectedMonth(`${y}-${m}`);
     } else if (preset === '2months_ago') {
       const prev = new Date(now.getFullYear(), now.getMonth() - 2, 1);
       const y = prev.getFullYear();
-      const m = String(prev.getMonth() + 1).padStart(2, '0');
+      const newM = String(prev.getMonth() + 1).padStart(2, '0');
       setSelectedMonth(`${y}-${m}`);
     }
   };
+
+  const displayMonthName = useMemo(() => {
+    if (analyticsData?.month_name) return analyticsData.month_name;
+    if (!selectedMonth) return 'Current Month';
+    try {
+      const [y, m] = selectedMonth.split('-').map(Number);
+      const d = new Date(y, (m || 1) - 1, 1);
+      return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    } catch {
+      return selectedMonth;
+    }
+  }, [analyticsData?.month_name, selectedMonth]);
 
   // Safe data access
   const income = analyticsData?.monthly_income ?? 0;
@@ -163,6 +176,16 @@ export const ExpenseAnalyticsView = ({
   const accountFlows = analyticsData?.account_flows || [];
   const topExpenses = analyticsData?.top_expenses || [];
   const history6m = analyticsData?.history_6m || [];
+
+  const hasTransactions = useMemo(() => {
+    return (
+      (income > 0 || expense > 0) ||
+      topCategories.length > 0 ||
+      incomeCategories.length > 0 ||
+      topExpenses.length > 0 ||
+      dailyTrend.some((d) => (d.income > 0 || d.expense > 0))
+    );
+  }, [income, expense, topCategories, incomeCategories, topExpenses, dailyTrend]);
 
   // Savings status evaluation
   const savingsStatus = useMemo(() => {
@@ -193,6 +216,21 @@ export const ExpenseAnalyticsView = ({
       }));
     }
   }, [activeCategoryTab, topCategories, incomeCategories]);
+
+  if (loading && !analyticsData) {
+    return (
+      <div className="space-y-6 sm:space-y-8 animate-pulse">
+        <div className="h-20 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+          <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+          <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+          <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+        </div>
+        <div className="h-80 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn">
@@ -264,7 +302,7 @@ export const ExpenseAnalyticsView = ({
               />
               <span className="px-2.5 text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 select-none pointer-events-none min-w-[110px] text-center justify-center">
                 <Calendar className="w-3.5 h-3.5 text-[#088ac1] dark:text-[#3dc3f3]" />
-                {analyticsData?.month_name || selectedMonth}
+                {displayMonthName}
               </span>
             </div>
             <button
@@ -278,6 +316,46 @@ export const ExpenseAnalyticsView = ({
           </div>
         </div>
       </div>
+
+      {/* Empty State Action Banner when no transactions exist for selected month */}
+      {!hasTransactions && (
+        <div className="glass-card rounded-3xl p-5 sm:p-6 border border-dashed border-[#088ac1]/30 bg-gradient-to-r from-[#088ac1]/10 via-slate-50/50 dark:via-slate-900/40 to-transparent flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-[#e1f3fd] dark:bg-[#0c4059] text-[#088ac1] dark:text-[#3dc3f3]">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                No Transactions Logged for {displayMonthName}
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Log your daily expenses, salary credits, or transfers to unlock real-time graphs and analytics.
+              </p>
+            </div>
+          </div>
+
+          {onAddTransaction && (
+            <div className="flex items-center gap-2 self-stretch sm:self-auto">
+              <button
+                type="button"
+                onClick={() => onAddTransaction('expense')}
+                className="flex-1 sm:flex-none py-2 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+              >
+                <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>- Expense</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onAddTransaction('income')}
+                className="flex-1 sm:flex-none py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>+ Income</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 2. Executive Financial Health Bento Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
@@ -766,7 +844,7 @@ export const ExpenseAnalyticsView = ({
             </div>
           ) : (
             <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 dark:bg-white/[0.01] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-              No {activeCategoryTab} categories logged for {analyticsData?.month_name}.
+              No {activeCategoryTab} categories logged for {displayMonthName}.
             </div>
           )}
         </div>

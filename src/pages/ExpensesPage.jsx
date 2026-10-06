@@ -167,9 +167,10 @@ export const ExpensesPage = () => {
   }, [selectedDate]);
 
   // Fetch Monthly Analytics with silent background update
-  const loadAnalyticsData = useCallback(async () => {
+  const loadAnalyticsData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
-      const res = await expenseApi.getSummaryAnalytics(selectedMonth);
+      const res = await expenseApi.getSummaryAnalytics({ month: selectedMonth });
       setAnalyticsData(res.data);
       if (res.data) {
         setDailyCache(`${CACHE_ANALYTICS_PREFIX}${selectedMonth}`, res.data);
@@ -272,6 +273,9 @@ export const ExpensesPage = () => {
       }
     }
 
+    if (activeTab === 'analytics') {
+      loadAnalyticsData(true);
+    }
     setRefreshKey((k) => k + 1);
   };
 
@@ -1339,6 +1343,11 @@ export const ExpensesPage = () => {
           selectedMonth={selectedMonth}
           setSelectedMonth={setSelectedMonth}
           loading={loading}
+          onAddTransaction={(type) => {
+            setEditingTransaction(null);
+            setTxModalType(type || 'expense');
+            setIsTxModalOpen(true);
+          }}
         />
       )}
 
