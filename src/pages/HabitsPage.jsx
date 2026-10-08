@@ -42,7 +42,6 @@ export const HabitsPage = () => {
     try {
       const localDate = getLocalDateString();
       const params = { date: localDate };
-      if (selectedCategory !== 'all') params.category = selectedCategory;
 
       const res = await habitApi.getHabits(params);
       const data = res.data || [];
@@ -53,7 +52,7 @@ export const HabitsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory]);
+  }, []);
 
   useEffect(() => {
     fetchHabits();
@@ -167,8 +166,9 @@ export const HabitsPage = () => {
 
 
   const filteredHabits = habits.filter((h) => {
+    if (!h || h.is_active === false) return false;
     if (selectedCategory === 'all') return true;
-    if (selectedCategory === 'today') return isHabitScheduledToday(h);
+    if (selectedCategory === 'today') return isHabitScheduledToday(h, todayDate);
     return h.category === selectedCategory;
   });
 
