@@ -168,3 +168,32 @@ export const clearDailyCache = (key) => {
     }
   } catch {}
 };
+
+/**
+ * Clears all application caches across localStorage & sessionStorage
+ * (invoked upon user login / switch to prevent showing another account's cached data)
+ */
+export const clearUserAppCaches = () => {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('cached_') || k.startsWith('app_cache_'))) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      const keysToRemove = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && (k.startsWith('cached_') || k.startsWith('app_cache_'))) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+    }
+  } catch {}
+};
