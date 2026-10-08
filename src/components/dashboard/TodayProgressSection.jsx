@@ -8,7 +8,7 @@ export const TodayProgressSection = ({
   stats,
   onOpenQuranModal,
   onOpenHabitModal,
-  onOpenTaskModal,
+  _onOpenTaskModal,
 }) => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('bento'); // 'bento' | 'compact'

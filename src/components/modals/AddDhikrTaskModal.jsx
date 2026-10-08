@@ -5,7 +5,7 @@ import { taskApi } from '../../api/taskApi';
 import { awradApi } from '../../api/awradApi';
 import { useNotification } from '../../context/NotificationContext';
 import { getLocalDateString } from '../../utils/dateUtils';
-import { Repeat, CheckSquare, Sparkles } from 'lucide-react';
+import { Repeat } from 'lucide-react';
 
 const PRESET_DHIKR_OPTIONS = [
   { name: 'Astaghfirullah', arabic: 'أَسْتَغْفِرُ اللَّهَ', meaning: 'I seek forgiveness from Allah' },

@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Check, Flame, BookOpen, Clock, Plus, Sparkles, Loader2 } from 'lucide-react';
+import { Check, Flame, BookOpen, Plus } from 'lucide-react';
 import { habitApi } from '../../api/habitApi';
 import { useNotification } from '../../context/NotificationContext';
 import { useDayWatch } from '../../context/DayWatchContext';
 import { getLocalDateString, isHabitScheduledToday, parseSpecificDays } from '../../utils/dateUtils';
 
-const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, onOpenQuranModal, onOpenAddModal }) => {
@@ -31,7 +30,7 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
         await onToggleHabit(habit);
       } else {
         const localDate = getLocalDateString();
-        const res = await habitApi.toggleHabit(habit.id, {
+        await habitApi.toggleHabit(habit.id, {
           date: localDate,
           is_completed: !wasDone,
           action: !wasDone ? 'complete' : 'incomplete',
@@ -136,7 +135,7 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
                 if (!isNaN(dt.getTime())) {
                   compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 }
-              } catch (e) {
+              } catch {
                 compTime = null;
               }
             }

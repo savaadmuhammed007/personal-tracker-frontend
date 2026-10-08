@@ -52,7 +52,7 @@ export const NotificationProvider = ({ children }) => {
 
       osc.start();
       osc.stop(audioCtx.currentTime + 0.36);
-    } catch (e) {
+    } catch {
       // AudioContext might be blocked until user gesture
     }
   }, []);

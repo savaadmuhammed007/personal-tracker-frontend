@@ -22,13 +22,11 @@ import {
   Building2,
   CreditCard,
   PiggyBank,
-  ArrowRight,
   Scale,
   CalendarDays,
   Percent,
   CheckCircle2,
   AlertCircle,
-  Clock,
   Utensils,
   ShoppingCart,
   Fuel,
@@ -49,8 +47,6 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  LineChart,
-  Line,
   AreaChart,
   Area,
   PieChart,
@@ -98,6 +94,8 @@ const CATEGORY_PALETTE = [
   '#3b82f6', '#a855f7', '#64748b'
 ];
 
+const EMPTY_ARRAY = [];
+
 export const ExpenseAnalyticsView = ({
   analyticsData,
   selectedMonth,
@@ -138,12 +136,12 @@ export const ExpenseAnalyticsView = ({
       const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const y = prev.getFullYear();
       const newM = String(prev.getMonth() + 1).padStart(2, '0');
-      setSelectedMonth(`${y}-${m}`);
+      setSelectedMonth(`${y}-${newM}`);
     } else if (preset === '2months_ago') {
       const prev = new Date(now.getFullYear(), now.getMonth() - 2, 1);
       const y = prev.getFullYear();
       const newM = String(prev.getMonth() + 1).padStart(2, '0');
-      setSelectedMonth(`${y}-${m}`);
+      setSelectedMonth(`${y}-${newM}`);
     }
   };
 
@@ -170,12 +168,12 @@ export const ExpenseAnalyticsView = ({
   const peakExpense = analyticsData?.peak_expense_day;
   const mom = analyticsData?.mom_comparison || {};
   const sadaqah = analyticsData?.sadaqah || {};
-  const dailyTrend = analyticsData?.daily_trend || [];
-  const topCategories = analyticsData?.top_categories || [];
-  const incomeCategories = analyticsData?.income_categories || [];
-  const accountFlows = analyticsData?.account_flows || [];
-  const topExpenses = analyticsData?.top_expenses || [];
-  const history6m = analyticsData?.history_6m || [];
+  const dailyTrend = analyticsData?.daily_trend || EMPTY_ARRAY;
+  const topCategories = analyticsData?.top_categories || EMPTY_ARRAY;
+  const incomeCategories = analyticsData?.income_categories || EMPTY_ARRAY;
+  const accountFlows = analyticsData?.account_flows || EMPTY_ARRAY;
+  const topExpenses = analyticsData?.top_expenses || EMPTY_ARRAY;
+  const history6m = analyticsData?.history_6m || EMPTY_ARRAY;
 
   const hasTransactions = useMemo(() => {
     return (
@@ -811,9 +809,10 @@ export const ExpenseAnalyticsView = ({
                       <div className="flex items-center justify-between text-xs mb-1">
                         <div className="flex items-center gap-2 min-w-0">
                           <span
-                            className="w-3 h-3 rounded-full shrink-0"
+                            className="w-3 h-3 rounded-full shrink-0 flex items-center justify-center"
                             style={{ backgroundColor: item.color }}
                           />
+                          <IconComp className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                           <span className="font-bold text-slate-900 dark:text-white truncate">
                             {item.name}
                           </span>

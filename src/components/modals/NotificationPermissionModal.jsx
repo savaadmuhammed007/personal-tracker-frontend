@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Bell,
   BellRing,
   Clock,
-  Infinity,
+  Infinity as InfinityIcon,
   Globe,
   Sun,
   X,
   Check,
-  Sparkles,
   ShieldCheck,
 } from 'lucide-react';
 import { useNotification } from '../../context/NotificationContext';
@@ -22,7 +20,7 @@ const NOTIFICATION_OPTIONS = [
     badge: 'Recommended',
     badgeColor: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
     description: 'Continuous prayer Adhan calls, morning/evening Adhkar, and habit reminders on this device.',
-    icon: Infinity,
+    icon: InfinityIcon,
     iconColor: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60',
   },
   {

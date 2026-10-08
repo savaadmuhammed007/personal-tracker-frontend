@@ -9,7 +9,6 @@ import {
   Clock,
   Edit2,
   Trash2,
-  Sparkles,
   ArrowRight,
 } from 'lucide-react';
 import { habitApi } from '../api/habitApi';
@@ -290,7 +289,7 @@ export const HabitsPage = () => {
                 if (!isNaN(dt.getTime())) {
                   compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 }
-              } catch (e) {
+              } catch {
                 compTime = null;
               }
             }

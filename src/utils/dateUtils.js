@@ -137,7 +137,7 @@ export const getDailyCache = (key, defaultVal = null, targetDate = getLocalDateS
     }
 
     return defaultVal;
-  } catch (e) {
+  } catch {
     return defaultVal;
   }
 };
@@ -155,7 +155,7 @@ export const setDailyCache = (key, data, targetDate = getLocalDateString()) => {
       data,
     };
     localStorage.setItem(key, JSON.stringify(envelope));
-  } catch (e) {}
+  } catch {}
 };
 
 /**
@@ -166,5 +166,5 @@ export const clearDailyCache = (key) => {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(key);
     }
-  } catch (e) {}
+  } catch {}
 };

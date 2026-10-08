@@ -29,7 +29,7 @@ const parseTimeToDate = (timeStr, baseDate = new Date()) => {
 
 export const Header = () => {
   const { next_prayer, location, settings, prayers, timetable } = usePrayers();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 

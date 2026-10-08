@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Wallet,
   ArrowDownLeft,
@@ -10,7 +10,6 @@ import {
   TrendingDown,
   Coins,
   Landmark,
-  Sparkles,
 } from 'lucide-react';
 import { expenseApi } from '../../api/expenseApi';
 import { formatCurrency } from '../../data/expenseCategories';
@@ -21,11 +20,9 @@ const CACHE_ACCOUNTS_KEY = 'cached_expense_accounts';
 const CACHE_DAILY_PREFIX = 'cached_daily_report_';
 
 export const DailyExpensesMini = ({ onDataChanged }) => {
-  const navigate = useNavigate();
   const today = getLocalDateString();
   const [dailyReport, setDailyReport] = useState(() => getDailyCache(`${CACHE_DAILY_PREFIX}${today}`, null, today));
   const [accounts, setAccounts] = useState(() => getDailyCache(CACHE_ACCOUNTS_KEY, []));
-  const [loading, setLoading] = useState(() => !dailyReport && !accounts.length);
 
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [txModalType, setTxModalType] = useState('expense');
@@ -108,8 +105,6 @@ export const DailyExpensesMini = ({ onDataChanged }) => {
     }
     if (onDataChanged) onDataChanged();
   };
-
-  const netFlow = dailyReport?.net_flow ?? 0;
 
   return (
     <div className="glass-card rounded-3xl p-5 sm:p-6 mb-8 border border-slate-200/80 dark:border-slate-800/80 shadow-soft relative overflow-hidden group">

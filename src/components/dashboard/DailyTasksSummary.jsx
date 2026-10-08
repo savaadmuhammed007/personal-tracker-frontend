@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, CheckSquare, Plus, ArrowRight } from 'lucide-react';
+import { Check, Plus, ArrowRight } from 'lucide-react';
 import { taskApi } from '../../api/taskApi';
 import { useNotification } from '../../context/NotificationContext';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Flame, Clock, MoreVertical, XCircle, CheckCircle } from 'lucide-react';
+import { Check, Flame, XCircle } from 'lucide-react';
 import { usePrayers } from '../../context/PrayerContext';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -60,8 +60,10 @@ export const PrayerCardsGrid = () => {
           if (prayer.completed_at) {
             try {
               const dt = new Date(prayer.completed_at);
-              completionTimeDisplay = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            } catch (e) {
+              if (!isNaN(dt.getTime())) {
+                completionTimeDisplay = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              }
+            } catch {
               completionTimeDisplay = null;
             }
           }

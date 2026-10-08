@@ -8,17 +8,12 @@ import {
   PiggyBank,
   Edit2,
   Trash2,
-  Check,
   Star,
   ArrowDownLeft,
   ArrowUpRight,
   ArrowRightLeft,
   Landmark,
-  Calendar,
-  Clock,
-  Tag,
   Download,
-  Plus,
 } from 'lucide-react';
 import { formatCurrency } from '../../data/expenseCategories';
 import { expenseApi } from '../../api/expenseApi';
@@ -70,7 +65,7 @@ export const AccountStatementModal = ({
       showToast('Default Account', `✓ ${account.name} is now your default payment account.`);
       if (onAccountUpdated) onAccountUpdated();
       loadStatement();
-    } catch (err) {
+    } catch {
       showToast('Error', 'Failed to set default account', 'error');
     }
   };
@@ -85,7 +80,7 @@ export const AccountStatementModal = ({
       showToast('Account Removed', res.data?.message || `Account ${account.name} removed.`);
       if (onAccountUpdated) onAccountUpdated();
       onClose();
-    } catch (err) {
+    } catch {
       showToast('Error', 'Failed to delete account', 'error');
     }
   };
@@ -332,7 +327,6 @@ export const AccountStatementModal = ({
               const isTransfer = tx.transaction_type === 'transfer';
 
               const isDebit = isExpense || (isTransfer && isSource);
-              const isCredit = isIncome || (isTransfer && !isSource);
 
               return (
                 <div

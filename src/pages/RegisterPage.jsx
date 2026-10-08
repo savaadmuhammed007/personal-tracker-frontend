@@ -9,15 +9,12 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
   Loader2,
   AlertCircle,
   Navigation,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import { Button } from '../components/common/UIComponents';
 import { AppLogo } from '../components/common/AppLogo';
 
 export const RegisterPage = () => {
@@ -143,8 +140,8 @@ export const RegisterPage = () => {
     try {
       await demoLogin();
       showToast('Demo Mode', 'Signed in as Demo User with full preview data.');
-      window.location.href = '/';
-    } catch (err) {
+      navigate('/');
+    } catch {
       setErrorMsg('Failed to sign in with demo account.');
       setLoading(false);
     }

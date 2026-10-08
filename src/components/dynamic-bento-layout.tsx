@@ -152,6 +152,7 @@ export const DynamicBentoLayout = React.forwardRef<HTMLDivElement, DynamicBentoL
     return (
       <div
         ref={ref}
+        style={style}
         className={`relative w-full min-h-0 flex flex-col rounded-2xl overflow-hidden bg-white/90 dark:bg-[#0b1822]/95 border border-slate-200/90 dark:border-[#163246] shadow-soft-lg ${className}`}
         {...props}
       >

@@ -5,7 +5,6 @@ import {
   Bookmark,
   Sparkles,
   CheckCircle2,
-  Clock,
   ArrowRight,
   Flame,
   Target,

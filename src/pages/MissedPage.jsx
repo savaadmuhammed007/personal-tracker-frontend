@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   RotateCcw,
-  Sparkles,
   Calendar,
   CheckCircle2,
-  Sun,
-  BookOpen,
-  Repeat,
   Heart,
 } from 'lucide-react';
 import { analyticsApi } from '../api/analyticsApi';

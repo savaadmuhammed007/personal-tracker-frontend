@@ -7,15 +7,12 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
   Loader2,
   AlertCircle,
   Zap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import { Button } from '../components/common/UIComponents';
 import { AppLogo } from '../components/common/AppLogo';
 
 export const LoginPage = () => {

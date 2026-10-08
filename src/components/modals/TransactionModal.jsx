@@ -29,9 +29,6 @@ import {
   Check,
   RefreshCw,
   X,
-  Calendar,
-  Clock,
-  FileText,
 } from 'lucide-react';
 import {
   EXPENSE_CATEGORIES,

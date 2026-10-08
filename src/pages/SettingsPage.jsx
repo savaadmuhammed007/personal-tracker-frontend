@@ -15,7 +15,6 @@ import {
   Volume2,
   Navigation,
   Loader2,
-  MapPin,
   Calendar,
   Sparkles,
   Plus,
@@ -24,7 +23,6 @@ import {
   ShieldCheck,
   X,
   LogOut,
-  Key,
   Clock,
 } from 'lucide-react';
 import { settingsApi } from '../api/settingsApi';
@@ -61,14 +59,14 @@ export const SettingsPage = () => {
   const [isStandalone, setIsStandalone] = useState(() => {
     if (typeof window === 'undefined') return false;
     return Boolean(
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone ||
-      document.referrer.includes('android-app://')
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      window.navigator?.standalone ||
+      (typeof document !== 'undefined' && document.referrer && document.referrer.includes('android-app://'))
     );
   });
   const [isIOS] = useState(() => {
     if (typeof window === 'undefined') return false;
-    const ua = window.navigator.userAgent.toLowerCase();
+    const ua = (window.navigator?.userAgent || '').toLowerCase();
     return /iphone|ipad|ipod/.test(ua) && !window.MSStream;
   });
   const [showIOSGuide, setShowIOSGuide] = useState(false);
@@ -230,25 +228,6 @@ export const SettingsPage = () => {
         minute: '2-digit',
         second: '2-digit',
         hour12: true,
-      });
-    }
-  })();
-
-  const formattedCurrentDate = (() => {
-    try {
-      return new Intl.DateTimeFormat('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        timeZone: activeTimezone,
-      }).format(liveTime);
-    } catch {
-      return liveTime.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
       });
     }
   })();

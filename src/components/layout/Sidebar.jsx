@@ -11,7 +11,6 @@ import {
   RotateCcw,
   Settings,
   Wallet,
-  LogOut,
   Sun,
   Moon,
   ArrowRight,
@@ -22,15 +21,10 @@ import { LiquidDimensionalNav } from '../liquid-dimensional-nav';
 import { AppLogo } from '../common/AppLogo';
 
 export const Sidebar = () => {
-  const { user, profile, logout } = useAuth();
+  const { user, profile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   // Determine current active navigation item ID from URL path
   const getActiveNavId = (pathname) => {

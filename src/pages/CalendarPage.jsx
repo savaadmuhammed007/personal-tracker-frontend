@@ -3,16 +3,11 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  Clock,
   CheckCircle2,
   XCircle,
-  Sun,
-  Repeat,
-  CheckSquare,
   Sparkles,
 } from 'lucide-react';
 import { calendarApi } from '../api/calendarApi';
-import { ProgressRing } from '../components/common/ProgressRing';
 import { useDayWatch } from '../context/DayWatchContext';
 import { getLocalDateString, getDailyCache, setDailyCache } from '../utils/dateUtils';
 
@@ -29,7 +24,6 @@ export const CalendarPage = () => {
   const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
   const [monthData, setMonthData] = useState(() => getDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${monthKey}`, null));
   const [dayDetails, setDayDetails] = useState(() => getDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${getLocalDateString()}`, null));
-  const [loadingMonth, setLoadingMonth] = useState(() => !getDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${monthKey}`, null));
   const [loadingDay, setLoadingDay] = useState(false);
 
   const fetchMonthData = useCallback(async () => {
@@ -37,18 +31,13 @@ export const CalendarPage = () => {
     const cached = getDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${mKey}`, null);
     if (cached) {
       setMonthData(cached);
-      setLoadingMonth(false);
-    } else {
-      setLoadingMonth(true);
     }
     try {
       const res = await calendarApi.getMonth(currentYear, currentMonth);
       setMonthData(res.data);
       setDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${mKey}`, res.data);
-    } catch (e) {
-      console.error('Failed to load month calendar:', e);
-    } finally {
-      setLoadingMonth(false);
+    } catch (_err) {
+      console.error('Failed to load month calendar:', _err);
     }
   }, [currentYear, currentMonth]);
 
@@ -78,7 +67,7 @@ export const CalendarPage = () => {
         if (!isNaN(dt.getTime())) {
           return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
-      } catch (e) {}
+      } catch {}
     }
     return row.time || '—';
   };

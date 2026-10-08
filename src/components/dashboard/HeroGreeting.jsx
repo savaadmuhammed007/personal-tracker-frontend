@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Quote, Calendar, BookmarkCheck } from 'lucide-react';
+import { Quote, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useDayWatch } from '../../context/DayWatchContext';
 import { analyticsApi } from '../../api/analyticsApi';

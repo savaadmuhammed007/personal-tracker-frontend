@@ -3,14 +3,12 @@ import {
   CheckSquare,
   Plus,
   Check,
-  Clock,
   Calendar,
   AlertCircle,
   Edit2,
   Trash2,
   Filter,
   Repeat,
-  Sparkles,
   ArrowUpRight,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -237,7 +235,7 @@ export const TasksPage = () => {
                 if (!isNaN(dt.getTime())) {
                   compTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 }
-              } catch (e) {
+              } catch {
                 compTime = null;
               }
             }

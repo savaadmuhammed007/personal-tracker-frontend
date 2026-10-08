@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/UIComponents';
-import { Wallet, Smartphone, Building2, CreditCard, PiggyBank, Plus, Minus, Check } from 'lucide-react';
+import { Wallet, Smartphone, Building2, CreditCard, PiggyBank, Check } from 'lucide-react';
 import { expenseApi } from '../../api/expenseApi';
 import { useNotification } from '../../context/NotificationContext';
 import { getLocalDateString } from '../../utils/dateUtils';
-import { formatCurrency } from '../../data/expenseCategories';
 
 const ACCOUNT_TYPES = [
   { id: 'cash', label: 'Cash', icon: Wallet, color: '#10b981' },

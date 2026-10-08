@@ -2,13 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Repeat,
   Plus,
-  Minus,
   RotateCcw,
-  Sparkles,
   Check,
   Volume2,
   VolumeX,
-  Smartphone,
   Trash2,
   CheckSquare,
   ListTodo,
@@ -18,7 +15,7 @@ import { AddAwradModal } from '../components/modals/AddAwradModal';
 import { AddDhikrTaskModal } from '../components/modals/AddDhikrTaskModal';
 import { useNotification } from '../context/NotificationContext';
 import { useDayWatch } from '../context/DayWatchContext';
-import { Button, Badge } from '../components/common/UIComponents';
+import { Button } from '../components/common/UIComponents';
 import { ProgressRing } from '../components/common/ProgressRing';
 import { getLocalDateString } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
@@ -32,7 +29,6 @@ export const AwradPage = () => {
   const [selectedTaskDhikr, setSelectedTaskDhikr] = useState(null);
   const [soundActive, setSoundActive] = useState(true);
   const [stepSize, setStepSize] = useState(1);
-  const [loading, setLoading] = useState(true);
   const { showToast, playChime, triggerHaptic } = useNotification();
 
   const fetchAwrad = useCallback(async () => {

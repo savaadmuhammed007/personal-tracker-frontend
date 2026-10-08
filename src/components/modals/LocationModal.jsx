@@ -10,8 +10,6 @@ import {
   Globe,
   Sliders,
   X,
-  Clock,
-  Sparkles,
   Loader2,
 } from 'lucide-react';
 import { usePrayers } from '../../context/PrayerContext';
@@ -149,7 +147,7 @@ export const LocationModal = ({ isOpen, onClose }) => {
       });
       showToast('Location Updated', `Prayer times updated accurately for ${cityObj.name}, ${cityObj.country}.`);
       onClose();
-    } catch (err) {
+    } catch {
       showToast('Error', 'Failed to update location.', 'error');
     } finally {
       setIsUpdating(false);
@@ -162,7 +160,7 @@ export const LocationModal = ({ isOpen, onClose }) => {
       showToast('Location Detected', `Synced to ${res.city || 'current GPS coordinates'}. Prayer times recalculated.`);
       onClose();
     } catch (err) {
-      showToast('GPS Error', err.message || 'Could not access GPS location.', 'error');
+      showToast('GPS Error', err?.message || 'Could not access GPS location.', 'error');
     }
   };
 
@@ -185,7 +183,7 @@ export const LocationModal = ({ isOpen, onClose }) => {
       await updateLocation(payload);
       showToast('Custom Location Saved', `Prayer times updated for ${customCity}.`);
       onClose();
-    } catch (err) {
+    } catch {
       showToast('Error', 'Failed to save custom location.', 'error');
     } finally {
       setIsUpdating(false);
@@ -393,7 +391,7 @@ export const LocationModal = ({ isOpen, onClose }) => {
                       try {
                         await updateLocation({ hijri_adjustment: item.offset });
                         showToast('Hijri Adjusted', `Hijri date offset set to ${item.offset >= 0 ? '+' : ''}${item.offset} days.`);
-                      } catch (e) {
+                      } catch {
                         showToast('Error', 'Failed to update Hijri adjustment.', 'error');
                       }
                     }}

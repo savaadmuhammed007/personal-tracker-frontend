@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
-import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface NavItem {
   id: string;
@@ -131,86 +131,19 @@ const DEFAULT_ITEMS: NavItem[] = [
   },
 ];
 
-const MagneticIcon = ({
-  children,
-  isActive,
-  onClick,
-  onHover,
-  accentColor
-}: {
-  children: React.ReactNode;
-  isActive: boolean;
-  onClick: () => void;
-  onHover: () => void;
-  accentColor: string;
-}) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
-
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const springX = useSpring(x, { stiffness: 150, damping: 15, mass: 0.1 });
-  const springY = useSpring(y, { stiffness: 150, damping: 15, mass: 0.1 });
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    // Calculate distance for magnetic pull
-    const distanceX = e.clientX - centerX;
-    const distanceY = e.clientY - centerY;
-
-    x.set(distanceX * 0.4);
-    y.set(distanceY * 0.4);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    x.set(0);
-    y.set(0);
-  };
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    onHover();
-  };
-
-  return (
-    <div
-      className="relative p-4 cursor-pointer flex items-center justify-center"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onMouseEnter={handleMouseEnter}
-      onClick={onClick}
-    >
-      <motion.div
-        ref={ref}
-        style={{ x: springX, y: springY }}
-        className="relative z-10 w-10 h-10 flex items-center justify-center transition-colors duration-300"
-        animate={{ color: isActive || isHovered ? accentColor : "rgba(255,255,255,0.4)" }}
-      >
-        {children}
-      </motion.div>
-    </div>
-  );
-};
-
 export function LiquidDimensionalNav({
   items = DEFAULT_ITEMS,
   primaryColor = "#1eb4eb",
-  accentColor = "#3dc3f3",
+  _accentColor = "#3dc3f3",
   bg = "rgba(6, 14, 20, 0.95)",
-  borderColor = "rgba(255, 255, 255, 0.08)",
+  _borderColor = "rgba(255, 255, 255, 0.08)",
   activeId,
   onNavigate,
   onItemChange,
   className = "",
   style,
   ...props
-}: LiquidDimensionalNavProps) {
+}: LiquidDimensionalNavProps & { _accentColor?: string; _borderColor?: string }) {
   const [internalActiveItem, setInternalActiveItem] = useState<string>(items[0]?.id || 'dashboard');
   const activeItem = activeId !== undefined ? activeId : internalActiveItem;
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -224,8 +157,6 @@ export function LiquidDimensionalNav({
   if (!mounted) return null;
 
   const currentHover = hoveredItem || activeItem;
-  const activeNavItem = items.find((item) => item.id === activeItem) || items[0];
-  const activeContent = activeNavItem?.content;
 
   const handleItemClick = (item: NavItem) => {
     setInternalActiveItem(item.id);

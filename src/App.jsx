@@ -9,7 +9,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Layout } from './components/layout/Layout';
 import { AppLogo } from './components/common/AppLogo';
 
-// Page Imports
+// Direct Page Imports
 import { HomePage } from './pages/HomePage';
 import { QuranPage } from './pages/QuranPage';
 import { CalendarPage } from './pages/CalendarPage';
@@ -60,7 +60,11 @@ const PublicOnlyRoute = ({ children }) => {
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
 
   if (isLoading) {
-    return null;
+    return (
+      <div className="min-h-screen bg-islamic-bg-light dark:bg-islamic-bg-dark flex flex-col items-center justify-center space-y-4">
+        <AppLogo className="w-16 h-16 animate-pulse" />
+      </div>
+    );
   }
 
   if (isAuthenticated || token) {

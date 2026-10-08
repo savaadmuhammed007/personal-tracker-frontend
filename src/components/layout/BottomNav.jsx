@@ -314,6 +314,18 @@ export const BottomNav = () => {
                 })}
               </div>
             </div>
+
+            {/* Sign Out Button in Mobile Sheet */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/80 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold text-xs hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out ({profile?.display_name || user?.username || 'Account'})</span>
+              </button>
+            </div>
           </div>
         </div>,
         document.body

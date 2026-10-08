@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button } from '../common/UIComponents';
 import { habitApi } from '../../api/habitApi';
 import { useNotification } from '../../context/NotificationContext';
-import { BookOpen, Sparkles, Bookmark, CheckCircle2, ChevronRight, Target } from 'lucide-react';
+import { Sparkles, Bookmark, Target } from 'lucide-react';
 import { QURAN_SURAHS, JUZ_PRESETS } from '../../data/quranData';
 import { getLocalDateString } from '../../utils/dateUtils';
 

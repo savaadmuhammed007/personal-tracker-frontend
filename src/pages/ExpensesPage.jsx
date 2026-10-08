@@ -22,7 +22,6 @@ import {
   BarChart3,
   Landmark,
   Coins,
-  RefreshCw,
   Utensils,
   ShoppingCart,
   Fuel,
@@ -40,27 +39,15 @@ import {
   Laptop,
   Gift,
   PlusCircle,
-  Tag,
-  CheckCircle2,
   FileSpreadsheet,
   Star,
   Layers,
   ArrowRight,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-} from 'recharts';
 import { expenseApi } from '../api/expenseApi';
 import { useNotification } from '../context/NotificationContext';
-import { useDayWatch } from '../context/DayWatchContext';
 import { getLocalDateString, getDailyCache, setDailyCache } from '../utils/dateUtils';
-import { formatCurrency, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../data/expenseCategories';
+import { formatCurrency } from '../data/expenseCategories';
 import { TransactionModal } from '../components/modals/TransactionModal';
 import { OpeningBalanceModal } from '../components/modals/OpeningBalanceModal';
 import { AccountFormModal } from '../components/modals/AccountFormModal';
@@ -100,7 +87,6 @@ const ICON_MAP = {
 
 export const ExpensesPage = () => {
   const { showToast } = useNotification();
-  const { todayDate } = useDayWatch();
 
   // Active View Tab: 'daily' | 'accounts' | 'analytics' | 'ledger'
   const [activeTab, setActiveTab] = useState('daily');
@@ -313,7 +299,7 @@ export const ExpensesPage = () => {
       await expenseApi.deleteTransaction(tx.id);
       showToast('Deleted', 'Transaction removed successfully');
       handleRefresh();
-    } catch (err) {
+    } catch {
       showToast('Error', 'Failed to delete transaction', 'error');
     }
   };
@@ -336,7 +322,7 @@ export const ExpensesPage = () => {
       await expenseApi.setDefaultAccount(account.id);
       showToast('Default Account', `✓ ${account.name} is now your default payment account.`);
       handleRefresh();
-    } catch (err) {
+    } catch {
       showToast('Error', 'Failed to set default account', 'error');
     }
   };
@@ -349,7 +335,7 @@ export const ExpensesPage = () => {
       const res = await expenseApi.deleteAccount(account.id);
       showToast('Account Removed', res.data?.message || `Account ${account.name} removed.`);
       handleRefresh();
-    } catch (err) {
+    } catch {
       showToast('Error', 'Failed to remove account', 'error');
     }
   };

@@ -33,10 +33,10 @@ export const DayWatchProvider = ({ children }) => {
             detail: { newDate: currentLocal, oldDate: prevDate, force: forceRefresh },
           })
         );
-      } catch (e) {}
+      } catch {}
 
       return true;
-    } else if (isStale && forceRefresh) {
+    } else if (isStale) {
       setRevision((r) => r + 1);
     }
     return false;

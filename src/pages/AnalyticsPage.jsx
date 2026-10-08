@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   BarChart3,
-  Flame,
   CheckCircle2,
   Sun,
   Clock,
   BookOpen,
-  Repeat,
   TrendingUp,
   Award,
+  Loader2,
 } from 'lucide-react';
 import {
   BarChart,
@@ -17,11 +16,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
   CartesianGrid,
 } from 'recharts';
 import { analyticsApi } from '../api/analyticsApi';
@@ -77,6 +71,15 @@ export const AnalyticsPage = () => {
     3: 'bg-[#1eb4eb] dark:bg-[#1eb4eb] border-[#088ac1] dark:border-[#3dc3f3]',
     4: 'bg-[#076e9d] dark:bg-[#3dc3f3] border-[#0b5d81] dark:border-[#81d7f8]',
   };
+
+  if (loading && !summary) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400 gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-[#088ac1]" />
+        <p className="text-sm font-medium">Loading analytics...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

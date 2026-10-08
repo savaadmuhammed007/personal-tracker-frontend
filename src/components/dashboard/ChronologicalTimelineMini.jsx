@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle2, Repeat, Sun, CheckSquare, Sparkles } from 'lucide-react';
+import { Clock, CheckCircle2, Repeat, Sun, CheckSquare } from 'lucide-react';
 import { timelineApi } from '../../api/timelineApi';
 import { useDayWatch } from '../../context/DayWatchContext';
 import { getLocalDateString, getDailyCache, setDailyCache } from '../../utils/dateUtils';
@@ -54,7 +54,7 @@ export const ChronologicalTimelineMini = ({ refreshTrigger, date }) => {
         if (!isNaN(dt.getTime())) {
           return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
-      } catch (e) {}
+      } catch {}
     }
     return item.time_formatted || item.time || '';
   };

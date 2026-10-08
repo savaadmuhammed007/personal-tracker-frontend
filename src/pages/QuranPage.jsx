@@ -7,19 +7,13 @@ import {
   Target,
   Search,
   CheckCircle2,
-  Calendar,
   Clock,
-  ArrowRight,
   Compass,
-  Layers,
-  ChevronRight,
-  TrendingUp,
-  Award,
-  RefreshCw,
   Plus,
   Minus,
+  Loader2,
 } from 'lucide-react';
-import { QURAN_SURAHS, JUZ_PRESETS, QURAN_STATS } from '../data/quranData';
+import { QURAN_SURAHS, JUZ_PRESETS } from '../data/quranData';
 import { habitApi } from '../api/habitApi';
 import { QuranLogModal } from '../components/modals/QuranLogModal';
 import { useNotification } from '../context/NotificationContext';
@@ -245,7 +239,15 @@ export const QuranPage = () => {
 
   // Overall statistics from history
   const totalJuzHistory = completions.reduce((acc, curr) => acc + (curr.juz_count || (curr.pages_read ? curr.pages_read / 20 : 1.0)), 0);
-  const totalPagesHistory = completions.reduce((acc, curr) => acc + (curr.pages_read || Math.round((curr.juz_count || 1.0) * 20)), 0);
+
+  if (loading && !quranHabit) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400 gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-[#088ac1]" />
+        <p className="text-sm font-medium">Loading Qur'an progress...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in pb-12">

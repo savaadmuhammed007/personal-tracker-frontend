@@ -22,7 +22,7 @@ const CACHE_AWRAD_KEY = 'cached_dashboard_awrad';
 const CACHE_TASKS_KEY = 'cached_dashboard_tasks';
 
 export const HomePage = () => {
-  const { prayers, completed_count: prayersCompleted } = usePrayers();
+  const { completed_count: prayersCompleted } = usePrayers();
   const { todayDate, revision } = useDayWatch();
 
   // Instant render from date-validated localStorage cache (eliminates initial empty lag without showing stale completed checkmarks from yesterday!)
