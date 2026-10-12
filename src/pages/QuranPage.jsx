@@ -19,11 +19,11 @@ import { QuranLogModal } from '../components/modals/QuranLogModal';
 import { useNotification } from '../context/NotificationContext';
 import { useDayWatch } from '../context/DayWatchContext';
 import { Button } from '../components/common/UIComponents';
-import { getLocalDateString } from '../utils/dateUtils';
+import { getLocalDateString, invalidateDailyActivityCaches } from '../utils/dateUtils';
 
 export const QuranPage = () => {
   const { showToast } = useNotification();
-  const { todayDate, revision } = useDayWatch();
+  const { todayDate, revision, triggerRevision } = useDayWatch();
   const [quranHabit, setQuranHabit] = useState(null);
   const [completions, setCompletions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -155,6 +155,8 @@ export const QuranPage = () => {
           `MashaAllah! Recorded ${presetValue} Juz recitation for today.`
         );
       }
+      invalidateDailyActivityCaches(localDate);
+      if (triggerRevision) triggerRevision();
       fetchQuranData();
     } catch (e) {
       console.error('Failed to log quick fraction:', e);
@@ -167,15 +169,16 @@ export const QuranPage = () => {
     const rawVal = val !== undefined ? val : customPagesInput;
     const pagesVal = Math.max(0, parseInt(rawVal, 10) || 0);
     if (!quranHabit) return;
+    const localDate = getLocalDateString();
     try {
       if (pagesVal === 0) {
-        await habitApi.toggleHabit(quranHabit.id, { date: getLocalDateString(), is_completed: false });
+        await habitApi.toggleHabit(quranHabit.id, { date: localDate, is_completed: false });
         showToast('Recitation Cleared', 'Recitation log cleared for today.', 'neutral');
         setCustomPagesInput('');
       } else {
         const computedJuz = Number((pagesVal / 20.0).toFixed(2));
         await habitApi.logDetails(quranHabit.id, {
-          date: getLocalDateString(),
+          date: localDate,
           surah_name: currentSurahObj.name,
           last_surah_name: currentSurahObj.name,
           last_surah_number: currentSurahObj.number,
@@ -192,6 +195,8 @@ export const QuranPage = () => {
         );
         setCustomPagesInput(String(pagesVal));
       }
+      invalidateDailyActivityCaches(localDate);
+      if (triggerRevision) triggerRevision();
       fetchQuranData();
     } catch (e) {
       console.error('Failed to log custom pages:', e);
@@ -202,8 +207,10 @@ export const QuranPage = () => {
   // Quick Bookmark Setter from Surah list
   const handleSetBookmark = async (surah, ayah = 1) => {
     if (!quranHabit) return;
+    const localDate = getLocalDateString();
     try {
       await habitApi.logDetails(quranHabit.id, {
+        date: localDate,
         surah_name: surah.name,
         last_surah_name: surah.name,
         last_surah_number: surah.number,
@@ -217,6 +224,8 @@ export const QuranPage = () => {
         'Bookmark Updated',
         `Remarked bookmark at Surah ${surah.name}, Ayah ${ayah}`
       );
+      invalidateDailyActivityCaches(localDate);
+      if (triggerRevision) triggerRevision();
       fetchQuranData();
     } catch (e) {
       console.error('Failed to set bookmark:', e);

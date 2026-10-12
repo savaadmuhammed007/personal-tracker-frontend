@@ -3,7 +3,7 @@ import { prayerApi } from '../api/prayerApi';
 import { settingsApi } from '../api/settingsApi';
 import { useAuth } from './AuthContext';
 import { useDayWatch } from './DayWatchContext';
-import { getLocalDateString } from '../utils/dateUtils';
+import { getLocalDateString, invalidateDailyActivityCaches } from '../utils/dateUtils';
 
 const PrayerContext = createContext(null);
 const PRAYER_CACHE_KEY = 'cached_prayer_data';
@@ -252,12 +252,7 @@ export const PrayerProvider = ({ children }) => {
       });
 
       // Invalidate calendar & timeline caches so CalendarPage and Timeline update immediately
-      try {
-        localStorage.removeItem(`cached_calendar_day_${localDate}`);
-        sessionStorage.removeItem(`cached_calendar_day_${localDate}`);
-        localStorage.removeItem('cached_daily_timeline');
-        sessionStorage.removeItem('cached_daily_timeline');
-      } catch {}
+      invalidateDailyActivityCaches(localDate);
 
       if (triggerRevision) {
         triggerRevision();

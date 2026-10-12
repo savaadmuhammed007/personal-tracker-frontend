@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { getLocalDateString } from '../utils/dateUtils';
+import { getLocalDateString, invalidateDailyActivityCaches } from '../utils/dateUtils';
 
 const DayWatchContext = createContext(null);
 
@@ -8,6 +8,10 @@ export const DayWatchProvider = ({ children }) => {
   const [revision, setRevision] = useState(0);
   const todayRef = useRef(todayDate);
   const lastActiveRef = useRef(Date.now());
+
+  const triggerRevision = useCallback(() => {
+    setRevision((r) => r + 1);
+  }, []);
 
   /**
    * Checks if client calendar day has advanced past midnight,
@@ -22,6 +26,9 @@ export const DayWatchProvider = ({ children }) => {
     lastActiveRef.current = now;
 
     if (isDifferentDay || forceRefresh) {
+      if (isDifferentDay) {
+        invalidateDailyActivityCaches(prevDate);
+      }
       todayRef.current = currentLocal;
       setTodayDate(currentLocal);
       setRevision((r) => r + 1);
@@ -101,7 +108,7 @@ export const DayWatchProvider = ({ children }) => {
   }, [checkDayRollover]);
 
   return (
-    <DayWatchContext.Provider value={{ todayDate, revision, refreshDay }}>
+    <DayWatchContext.Provider value={{ todayDate, revision, refreshDay, triggerRevision }}>
       {children}
     </DayWatchContext.Provider>
   );
@@ -110,7 +117,12 @@ export const DayWatchProvider = ({ children }) => {
 export const useDayWatch = () => {
   const context = useContext(DayWatchContext);
   if (!context) {
-    return { todayDate: getLocalDateString(), revision: 0, refreshDay: () => {} };
+    return {
+      todayDate: getLocalDateString(),
+      revision: 0,
+      refreshDay: () => {},
+      triggerRevision: () => {},
+    };
   }
   return context;
 };

@@ -15,7 +15,7 @@ import { awradApi } from '../api/awradApi';
 import { taskApi } from '../api/taskApi';
 import { usePrayers } from '../context/PrayerContext';
 import { useDayWatch } from '../context/DayWatchContext';
-import { getLocalDateString, isHabitScheduledToday, getDailyCache, setDailyCache } from '../utils/dateUtils';
+import { getLocalDateString, isHabitScheduledToday, getDailyCache, setDailyCache, invalidateDailyActivityCaches } from '../utils/dateUtils';
 
 const CACHE_HABITS_KEY = 'cached_dashboard_habits';
 const CACHE_AWRAD_KEY = 'cached_dashboard_awrad';
@@ -23,7 +23,7 @@ const CACHE_TASKS_KEY = 'cached_dashboard_tasks';
 
 export const HomePage = () => {
   const { completed_count: prayersCompleted } = usePrayers();
-  const { todayDate, revision } = useDayWatch();
+  const { todayDate, revision, triggerRevision } = useDayWatch();
 
   // Instant render from date-validated localStorage cache (eliminates initial empty lag without showing stale completed checkmarks from yesterday!)
   const [habits, setHabits] = useState(() => getDailyCache(CACHE_HABITS_KEY, []));
@@ -146,6 +146,8 @@ export const HomePage = () => {
           return next;
         });
       }
+      invalidateDailyActivityCaches(localDate);
+      if (triggerRevision) triggerRevision();
       setTimelineRefresh((prev) => prev + 1);
       return res;
     } catch (e) {
@@ -174,6 +176,8 @@ export const HomePage = () => {
         is_completed: nextStatus === 'completed',
         action: nextStatus === 'completed' ? 'complete' : 'incomplete',
       });
+      invalidateDailyActivityCaches(localDate);
+      if (triggerRevision) triggerRevision();
       setTimelineRefresh((prev) => prev + 1);
       return res;
     } catch (e) {

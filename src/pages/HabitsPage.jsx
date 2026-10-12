@@ -17,7 +17,7 @@ import { QuranLogModal } from '../components/modals/QuranLogModal';
 import { useNotification } from '../context/NotificationContext';
 import { useDayWatch } from '../context/DayWatchContext';
 import { Button } from '../components/common/UIComponents';
-import { getLocalDateString, isHabitScheduledToday, parseSpecificDays, getDailyCache, setDailyCache } from '../utils/dateUtils';
+import { getLocalDateString, isHabitScheduledToday, parseSpecificDays, getDailyCache, setDailyCache, invalidateDailyActivityCaches } from '../utils/dateUtils';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -25,7 +25,7 @@ const CACHE_HABITS_PAGE_KEY = 'cached_habits_page';
 
 export const HabitsPage = () => {
   const navigate = useNavigate();
-  const { todayDate, revision } = useDayWatch();
+  const { todayDate, revision, triggerRevision } = useDayWatch();
   const [habits, setHabits] = useState(() => getDailyCache(CACHE_HABITS_PAGE_KEY, []));
   const [loading, setLoading] = useState(() => {
     const cached = getDailyCache(CACHE_HABITS_PAGE_KEY, null);
@@ -129,6 +129,8 @@ export const HabitsPage = () => {
           return next;
         });
       }
+      invalidateDailyActivityCaches(localDate);
+      if (triggerRevision) triggerRevision();
     } catch (e) {
       console.error('Failed to toggle habit:', e);
       fetchHabits();

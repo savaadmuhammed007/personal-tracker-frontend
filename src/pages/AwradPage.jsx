@@ -17,13 +17,14 @@ import { useNotification } from '../context/NotificationContext';
 import { useDayWatch } from '../context/DayWatchContext';
 import { Button } from '../components/common/UIComponents';
 import { ProgressRing } from '../components/common/ProgressRing';
-import { getLocalDateString } from '../utils/dateUtils';
+import { getLocalDateString, invalidateDailyActivityCaches } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
 
 export const AwradPage = () => {
-  const { todayDate, revision } = useDayWatch();
+  const { todayDate, revision, triggerRevision } = useDayWatch();
   const [awradList, setAwradList] = useState([]);
   const [activeAwrad, setActiveAwrad] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDhikrTaskModalOpen, setIsDhikrTaskModalOpen] = useState(false);
   const [selectedTaskDhikr, setSelectedTaskDhikr] = useState(null);
@@ -100,6 +101,8 @@ export const AwradPage = () => {
 
       if (res.data.is_completed && updatedCount - stepSize < targetCount) {
         showToast('Target Achieved', `Alhamdulillah! Completed ${targetCount}x ${activeAwrad.name}`, 'success');
+        invalidateDailyActivityCaches(localDate);
+        if (triggerRevision) triggerRevision();
       }
     } catch (e) {
       console.error('Failed to increment:', e);
@@ -110,6 +113,8 @@ export const AwradPage = () => {
     try {
       const localDate = getLocalDateString();
       await awradApi.reset(id, { date: localDate });
+      invalidateDailyActivityCaches(localDate);
+      if (triggerRevision) triggerRevision();
       fetchAwrad();
       showToast('Counter Reset', `Reset counter for ${name}`, 'neutral');
     } catch (e) {

@@ -17,9 +17,17 @@ export const ChronologicalTimelineMini = ({ refreshTrigger, date }) => {
 
   useEffect(() => {
     let isMounted = true;
+    const targetDate = date || todayDate || getLocalDateString();
+    const cached = getDailyCache(CACHE_TIMELINE_KEY, null, targetDate);
+    if (cached) {
+      setTimeline(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     const fetchTimeline = async () => {
       try {
-        const targetDate = date || todayDate || getLocalDateString();
         const res = await timelineApi.getTimeline(targetDate);
         if (isMounted) {
           const list = Array.isArray(res.data?.timeline) ? res.data.timeline : Array.isArray(res.data) ? res.data : [];

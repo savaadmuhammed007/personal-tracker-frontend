@@ -11,9 +11,10 @@ import { habitApi } from '../api/habitApi';
 import { useNotification } from '../context/NotificationContext';
 import { useDayWatch } from '../context/DayWatchContext';
 import { Button } from '../components/common/UIComponents';
+import { invalidateDailyActivityCaches } from '../utils/dateUtils';
 
 export const MissedPage = () => {
-  const { todayDate, revision } = useDayWatch();
+  const { todayDate, revision, triggerRevision } = useDayWatch();
   const [missedData, setMissedData] = useState(null);
   const [days, setDays] = useState(7);
   const [category, setCategory] = useState('all');
@@ -54,6 +55,8 @@ export const MissedPage = () => {
         notes: 'Made up (Qada/Late)',
       });
       showToast('Prayer Logged', `✓ ${prayerName} for ${date} marked completed.`);
+      invalidateDailyActivityCaches(date);
+      if (triggerRevision) triggerRevision();
       fetchMissed();
     } catch (e) {
       console.error('Failed to make up prayer:', e);
@@ -64,6 +67,8 @@ export const MissedPage = () => {
     try {
       await habitApi.toggleHabit(habitId, { date: date, is_completed: true, action: 'complete' });
       showToast('Habit Logged', `✓ ${name} for ${date} marked completed.`);
+      invalidateDailyActivityCaches(date);
+      if (triggerRevision) triggerRevision();
       fetchMissed();
     } catch (e) {
       console.error('Failed to make up habit:', e);

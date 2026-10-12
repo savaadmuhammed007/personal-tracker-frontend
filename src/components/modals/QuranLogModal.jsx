@@ -4,7 +4,7 @@ import { habitApi } from '../../api/habitApi';
 import { useNotification } from '../../context/NotificationContext';
 import { Sparkles, Bookmark, Target } from 'lucide-react';
 import { QURAN_SURAHS, JUZ_PRESETS } from '../../data/quranData';
-import { getLocalDateString } from '../../utils/dateUtils';
+import { getLocalDateString, invalidateDailyActivityCaches } from '../../utils/dateUtils';
 
 export const QuranLogModal = ({ isOpen, onClose, habit, onSaved }) => {
   const { showToast } = useNotification();
@@ -91,6 +91,7 @@ export const QuranLogModal = ({ isOpen, onClose, habit, onSaved }) => {
         notes,
       });
 
+      invalidateDailyActivityCaches(getLocalDateString());
       showToast(
         'Qur’an Logged & Bookmarked',
         `MashaAllah! Recorded ${juzCount} Juz • Remarked Surah ${activeSurah.name}, Ayah ${selectedAyahNumber}`

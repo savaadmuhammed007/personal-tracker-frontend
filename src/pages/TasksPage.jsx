@@ -18,10 +18,10 @@ import { AddDhikrTaskModal } from '../components/modals/AddDhikrTaskModal';
 import { useNotification } from '../context/NotificationContext';
 import { useDayWatch } from '../context/DayWatchContext';
 import { Button, Badge } from '../components/common/UIComponents';
-import { getLocalDateString } from '../utils/dateUtils';
+import { getLocalDateString, invalidateDailyActivityCaches } from '../utils/dateUtils';
 
 export const TasksPage = () => {
-  const { todayDate, revision } = useDayWatch();
+  const { todayDate, revision, triggerRevision } = useDayWatch();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pendingTaskIds, setPendingTaskIds] = useState(new Set());
@@ -86,6 +86,8 @@ export const TasksPage = () => {
         is_completed: nextStatus === 'completed',
         action: nextStatus === 'completed' ? 'complete' : 'incomplete',
       });
+      invalidateDailyActivityCaches(getLocalDateString());
+      if (triggerRevision) triggerRevision();
     } catch (e) {
       console.error('Failed to toggle task:', e);
       fetchTasks();

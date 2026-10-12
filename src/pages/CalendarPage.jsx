@@ -22,27 +22,39 @@ export const CalendarPage = () => {
   const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
 
   const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-  const [monthData, setMonthData] = useState(() => getDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${monthKey}`, null));
-  const [dayDetails, setDayDetails] = useState(() => getDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${getLocalDateString()}`, null));
+  const [monthData, setMonthData] = useState(() => {
+    try {
+      const raw = localStorage.getItem(`${CACHE_CALENDAR_MONTH_PREFIX}${monthKey}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [dayDetails, setDayDetails] = useState(() => getDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${getLocalDateString()}`, null, getLocalDateString()));
   const [loadingDay, setLoadingDay] = useState(false);
 
   const fetchMonthData = useCallback(async () => {
     const mKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-    const cached = getDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${mKey}`, null);
-    if (cached) {
-      setMonthData(cached);
-    }
+    const storageKey = `${CACHE_CALENDAR_MONTH_PREFIX}${mKey}`;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        setMonthData(JSON.parse(raw));
+      }
+    } catch {}
     try {
       const res = await calendarApi.getMonth(currentYear, currentMonth);
       setMonthData(res.data);
-      setDailyCache(`${CACHE_CALENDAR_MONTH_PREFIX}${mKey}`, res.data);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(res.data));
+      } catch {}
     } catch (_err) {
       console.error('Failed to load month calendar:', _err);
     }
   }, [currentYear, currentMonth]);
 
   const fetchDayDetails = useCallback(async (dateStr) => {
-    const cached = getDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${dateStr}`, null);
+    const cached = getDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${dateStr}`, null, dateStr);
     if (cached) {
       setDayDetails(cached);
       setLoadingDay(false);
@@ -52,7 +64,7 @@ export const CalendarPage = () => {
     try {
       const res = await calendarApi.getDayDetails(dateStr);
       setDayDetails(res.data);
-      setDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${dateStr}`, res.data);
+      setDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${dateStr}`, res.data, dateStr);
     } catch (e) {
       console.error('Failed to load day details:', e);
     } finally {

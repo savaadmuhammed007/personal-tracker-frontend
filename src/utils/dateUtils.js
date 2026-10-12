@@ -104,7 +104,38 @@ export const sanitizeDailyCacheList = (key, list, targetDate = getLocalDateStrin
     // For tasks, remove completed ones from previous day
     return list.filter((t) => t && t.status !== 'completed');
   }
+  if (key.includes('timeline')) {
+    // Previous day's activity timeline must not leak into today's timeline
+    return [];
+  }
   return list;
+};
+
+/**
+ * Invalidates and flushes short-lived daily caches across localStorage & sessionStorage
+ * (invoked when an activity is completed, toggled, or bookmarked so timeline,
+ * habits page, home page, and calendar day grid instantly reflect the latest database state)
+ */
+export const invalidateDailyActivityCaches = (dateStr = getLocalDateString()) => {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.removeItem('cached_daily_timeline');
+    localStorage.removeItem('cached_dashboard_habits');
+    localStorage.removeItem('cached_dashboard_awrad');
+    localStorage.removeItem('cached_dashboard_tasks');
+    localStorage.removeItem('cached_habits_page');
+    if (dateStr) {
+      localStorage.removeItem(`cached_calendar_day_${dateStr}`);
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('cached_daily_timeline');
+      sessionStorage.removeItem('cached_dashboard_habits');
+      sessionStorage.removeItem('cached_habits_page');
+      if (dateStr) {
+        sessionStorage.removeItem(`cached_calendar_day_${dateStr}`);
+      }
+    }
+  } catch {}
 };
 
 /**
