@@ -10,6 +10,8 @@ import {
   Edit2,
   Trash2,
   ArrowRight,
+  Bell,
+  BellRing,
 } from 'lucide-react';
 import { habitApi } from '../api/habitApi';
 import { HabitFormModal } from '../components/modals/HabitFormModal';
@@ -151,6 +153,33 @@ export const HabitsPage = () => {
       fetchHabits();
     } catch (e) {
       console.error('Failed to delete habit:', e);
+    }
+  };
+
+  const handleToggleHabitReminder = async (habit) => {
+    const nextState = !habit.reminder_enabled;
+    const reminderTime = habit.reminder_time || '07:00 AM';
+    setHabits((prev) =>
+      prev.map((h) =>
+        h.id === habit.id
+          ? { ...h, reminder_enabled: nextState, reminder_time: nextState ? reminderTime : '' }
+          : h
+      )
+    );
+    try {
+      await habitApi.updateHabit(habit.id, {
+        reminder_enabled: nextState,
+        reminder_time: nextState ? reminderTime : '',
+      });
+      showToast(
+        nextState ? 'Reminder Enabled' : 'Reminder Disabled',
+        nextState
+          ? `Background push alert active at ${reminderTime} for "${habit.name}".`
+          : `Reminder turned off.`
+      );
+    } catch (err) {
+      console.error('Failed to toggle habit reminder:', err);
+      fetchHabits();
     }
   };
 
@@ -325,6 +354,18 @@ export const HabitsPage = () => {
                       )}
 
                       <button
+                        onClick={() => handleToggleHabitReminder(habit)}
+                        className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                          habit.reminder_enabled && habit.reminder_time
+                            ? 'text-[#088ac1] dark:text-[#3dc3f3] bg-[#088ac1]/15 hover:bg-[#088ac1]/25 border border-[#3dc3f3]/30'
+                            : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                        title={habit.reminder_enabled && habit.reminder_time ? `Reminder Active (${habit.reminder_time}) - Click to turn off` : 'Turn on background reminder for this habit'}
+                      >
+                        <Bell className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
                         onClick={() => {
                           setEditingHabit(habit);
                           setIsHabitModalOpen(true);
@@ -350,7 +391,7 @@ export const HabitsPage = () => {
                   </h3>
 
                   {/* Frequency & duration specs */}
-                  <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
                       {freqLabel}
@@ -360,6 +401,15 @@ export const HabitsPage = () => {
                       <Clock className="w-3.5 h-3.5" />
                       {habit.target_duration_minutes || 20}m target
                     </span>
+                    {habit.reminder_enabled && habit.reminder_time && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 text-[#088ac1] dark:text-[#3dc3f3] font-semibold" title="Background push alert enabled">
+                          <BellRing className="w-3.5 h-3.5" />
+                          <span>{habit.reminder_time}</span>
+                        </span>
+                      </>
+                    )}
                   </div>
 
                   {/* Quran logging preview & bookmark */}

@@ -66,17 +66,26 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notification handler
+// Push notification handler (Triggers even when the app/browser tab is closed)
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || 'Islamic Habit Tracker';
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { body: event.data ? event.data.text() : 'You have a scheduled reminder.' };
+  }
+
+  const title = data.title || 'يومي | Habit & Task Tracker';
   const options = {
     body: data.body || 'Time for your scheduled reminder.',
-    icon: '/icons/crescent-star.svg',
-    badge: '/icons/crescent-star.svg',
-    vibrate: [100, 50, 100],
+    icon: data.icon || '/icons/crescent-star.svg',
+    badge: data.badge || '/icons/crescent-star.svg',
+    vibrate: [200, 100, 200, 100, 200],
+    tag: data.tag || 'yowmi-reminder-' + Date.now(),
+    renotify: true,
+    requireInteraction: true,
     data: {
-      url: data.url || '/'
+      url: data.data?.url || data.url || '/'
     }
   };
   event.waitUntil(self.registration.showNotification(title, options));

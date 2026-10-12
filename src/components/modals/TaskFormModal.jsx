@@ -4,16 +4,17 @@ import { TimePickerField } from '../common/TimePickerField';
 import { taskApi } from '../../api/taskApi';
 import { useNotification } from '../../context/NotificationContext';
 import { getLocalDateString } from '../../utils/dateUtils';
-import { Repeat } from 'lucide-react';
+import { Repeat, Bell, BellRing } from 'lucide-react';
 
 export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
-  const { showToast } = useNotification();
+  const { showToast, notificationPermission, openNotificationModal } = useNotification();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('medium');
   const [category, setCategory] = useState('Personal');
   const [dueDate, setDueDate] = useState(getLocalDateString());
   const [dueTime, setDueTime] = useState('06:00 PM');
+  const [reminderEnabled, setReminderEnabled] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
       setCategory(task?.category || 'Personal');
       setDueDate(task?.due_date || getLocalDateString());
       setDueTime(task?.due_time || '06:00 PM');
+      setReminderEnabled(task?.reminder_enabled ?? false);
     }
   }, [isOpen, task]);
 
@@ -51,6 +53,7 @@ export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
       category,
       due_date: dueDate || null,
       due_time: dueTime,
+      reminder_enabled: reminderEnabled,
     };
 
     try {
@@ -178,6 +181,51 @@ export const TaskFormModal = ({ isOpen, onClose, task, onSaved }) => {
             label="Due Time (Clock)"
             modalTitle={task?.id ? `Set Due Time for ${title || 'Task'}` : 'Set Task Due Time'}
           />
+        </div>
+
+        {/* Dedicated Background Notification Card for Task */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className={`p-2 rounded-xl border transition-colors ${reminderEnabled ? 'bg-[#088ac1]/15 text-[#088ac1] dark:text-[#3dc3f3] border-[#3dc3f3]/40' : 'bg-slate-200/60 dark:bg-slate-700 text-slate-500 border-slate-300 dark:border-slate-600'}`}>
+                <Bell className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                  Remind Me When Due
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Sends background push alert even when app is closed
+                </p>
+              </div>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reminderEnabled}
+                onChange={(e) => {
+                  setReminderEnabled(e.target.checked);
+                  if (e.target.checked && notificationPermission !== 'granted') {
+                    openNotificationModal();
+                  }
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-[#088ac1]"></div>
+            </label>
+          </div>
+
+          {reminderEnabled && (
+            <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700/80 animate-fade-in">
+              <div className="flex items-start gap-2 p-2.5 rounded-xl bg-[#e1f3fd]/80 dark:bg-[#0f4d6b]/30 border border-[#bce8fb] dark:border-[#0b5d81]/60 text-[11px] text-[#076e9d] dark:text-[#81d7f8]">
+                <BellRing className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#088ac1] dark:text-[#3dc3f3]" />
+                <span className="leading-relaxed">
+                  <strong>Active Background Alert:</strong> Web Push notification will trigger at <strong>{dueTime || 'selected time'}</strong> on <strong>{dueDate || 'due date'}</strong> even if this app or browser is not open.
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="sticky bottom-0 bg-white/95 dark:bg-islamic-card-dark/95 backdrop-blur-md pt-3.5 pb-1 -mx-4 -mb-4 px-4 sm:-mx-6 sm:-mb-6 sm:px-6 border-t border-slate-100 dark:border-slate-800 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 z-20 mt-4">

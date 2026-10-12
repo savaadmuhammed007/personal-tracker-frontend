@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Plus, ArrowRight } from 'lucide-react';
+import { Check, Plus, ArrowRight, Bell } from 'lucide-react';
 import { taskApi } from '../../api/taskApi';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -117,8 +117,14 @@ export const DailyTasksSummary = ({ tasksList, onTaskUpdated, onToggleTask, onOp
                       {task.title}
                     </p>
                     {task.due_time && (
-                      <p className="text-[11px] text-slate-400">
-                        Due: {task.due_time}
+                      <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                        <span>Due: {task.due_time}</span>
+                        {task.reminder_enabled && (
+                          <span className="text-[#088ac1] dark:text-[#3dc3f3] font-semibold flex items-center gap-0.5" title="Background push alert enabled">
+                            <Bell className="w-2.5 h-2.5" />
+                            <span>Alert</span>
+                          </span>
+                        )}
                       </p>
                     )}
                   </div>

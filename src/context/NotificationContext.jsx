@@ -1,5 +1,17 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { NotificationPermissionModal } from '../components/modals/NotificationPermissionModal';
+import { remindersApi } from '../api/remindersApi';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 const NotificationContext = createContext(null);
 
@@ -15,12 +27,50 @@ export const NotificationProvider = ({ children }) => {
 
   const audioCtxRef = useRef(null);
 
-  // Sync native permission on mount
+  // Subscribe browser to background Web Push notifications
+  const subscribeWebPush = useCallback(async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      return false;
+    }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        const res = await remindersApi.getVapidPublicKey();
+        const vapidPublicKey = res.data?.publicKey;
+        if (!vapidPublicKey) return false;
+
+        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey,
+        });
+      }
+
+      if (sub) {
+        const subJson = sub.toJSON();
+        await remindersApi.subscribePush({
+          endpoint: subJson.endpoint,
+          keys: subJson.keys,
+        });
+        return true;
+      }
+    } catch (err) {
+      console.warn('[WebPush] Error subscribing device for push:', err);
+      return false;
+    }
+    return false;
+  }, []);
+
+  // Sync native permission and Web Push subscription on mount
   useEffect(() => {
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission);
+      if (Notification.permission === 'granted') {
+        subscribeWebPush();
+      }
     }
-  }, []);
+  }, [subscribeWebPush]);
 
   // Synthesize pleasant acoustic chime using Web Audio API (reusing singleton context)
   const playChime = useCallback((type = 'complete') => {
@@ -130,9 +180,12 @@ export const NotificationProvider = ({ children }) => {
         playChime('complete');
         triggerHaptic(50);
 
+        // Register background Web Push subscription
+        await subscribeWebPush();
+
         // Send a welcome test notification
         const welcomeTitle = 'يومي | Notifications Enabled';
-        const welcomeBody = `Device alerts set to ${durationLabels[durationChoice] || durationChoice}. You will receive Adhan reminders.`;
+        const welcomeBody = `Device alerts set to ${durationLabels[durationChoice] || durationChoice}. Background alerts enabled for habits & tasks.`;
 
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
           const reg = await navigator.serviceWorker.ready;
@@ -158,7 +211,7 @@ export const NotificationProvider = ({ children }) => {
       showToast('Permission Error', 'Could not request notification access.', 'error');
       return false;
     }
-  }, [showToast, playChime, triggerHaptic]);
+  }, [showToast, playChime, triggerHaptic, subscribeWebPush]);
 
   const testNotification = useCallback(async () => {
     if (Notification.permission !== 'granted') {
@@ -190,6 +243,24 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [openNotificationModal, playChime, triggerHaptic, showToast]);
 
+  const testBackgroundPush = useCallback(async () => {
+    if (Notification.permission !== 'granted') {
+      openNotificationModal();
+      return;
+    }
+    playChime('complete');
+    triggerHaptic(50);
+    try {
+      showToast('Dispatching...', 'Sending test push from server.');
+      await subscribeWebPush();
+      const res = await remindersApi.sendTestPush();
+      showToast('Background Push Sent', res.data?.message || 'Check your system notification center.');
+    } catch (err) {
+      console.error('Test push error:', err);
+      showToast('Push Error', 'Could not dispatch server push.', 'error');
+    }
+  }, [openNotificationModal, subscribeWebPush, showToast, playChime, triggerHaptic]);
+
   return (
     <NotificationContext.Provider
       value={{
@@ -204,6 +275,8 @@ export const NotificationProvider = ({ children }) => {
         closeNotificationModal,
         enableNotificationsWithDuration,
         testNotification,
+        testBackgroundPush,
+        subscribeWebPush,
       }}
     >
       {children}

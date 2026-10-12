@@ -10,6 +10,8 @@ import {
   Filter,
   Repeat,
   ArrowUpRight,
+  Bell,
+  BellRing,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { taskApi } from '../api/taskApi';
@@ -108,6 +110,26 @@ export const TasksPage = () => {
       fetchTasks();
     } catch (e) {
       console.error('Failed to delete task:', e);
+    }
+  };
+
+  const handleToggleTaskReminder = async (task) => {
+    const nextState = !task.reminder_enabled;
+    setTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, reminder_enabled: nextState } : t))
+    );
+    try {
+      await taskApi.updateTask(task.id, {
+        reminder_enabled: nextState,
+        due_time: task.due_time || '06:00 PM',
+      });
+      showToast(
+        nextState ? 'Reminder Enabled' : 'Reminder Disabled',
+        nextState ? `Background push alerts active for "${task.title}".` : `Reminder turned off.`
+      );
+    } catch (e) {
+      console.error('Failed to update task reminder:', e);
+      fetchTasks();
     }
   };
 
@@ -305,6 +327,12 @@ export const TasksPage = () => {
                           {task.due_date} {task.due_time && `@ ${task.due_time}`}
                         </span>
                       )}
+                      {task.reminder_enabled && (
+                        <span className="flex items-center gap-1 text-[#088ac1] dark:text-[#3dc3f3] font-semibold" title="Background push notification enabled">
+                          <BellRing className="w-3 h-3" />
+                          <span>Alert On</span>
+                        </span>
+                      )}
                       {task.is_overdue && (
                         <span className="text-rose-600 dark:text-rose-400 font-bold flex items-center gap-0.5">
                           <AlertCircle className="w-3 h-3" /> Overdue
@@ -343,6 +371,18 @@ export const TasksPage = () => {
                   </div>
 
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleToggleTaskReminder(task)}
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                        task.reminder_enabled
+                          ? 'text-[#088ac1] dark:text-[#3dc3f3] bg-[#088ac1]/15 hover:bg-[#088ac1]/25 border border-[#3dc3f3]/30'
+                          : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                      title={task.reminder_enabled ? `Reminder Active (${task.due_time || 'On Due Date'}) - Click to turn off` : 'Turn on background reminder for this task'}
+                    >
+                      <Bell className="w-3.5 h-3.5" />
+                    </button>
+
                     <button
                       onClick={() => {
                         setEditingTask(task);

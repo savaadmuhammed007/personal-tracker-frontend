@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Bell, BellRing } from 'lucide-react';
 import { Modal, Button } from '../common/UIComponents';
 import { TimePickerField } from '../common/TimePickerField';
 import { habitApi } from '../../api/habitApi';
@@ -6,7 +7,7 @@ import { useNotification } from '../../context/NotificationContext';
 import { QURAN_SURAHS, JUZ_PRESETS } from '../../data/quranData';
 
 export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
-  const { showToast } = useNotification();
+  const { showToast, notificationPermission, openNotificationModal } = useNotification();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('quran');
   const [selectedSurahNumber, setSelectedSurahNumber] = useState('');
@@ -15,6 +16,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
   const [frequency, setFrequency] = useState('daily');
   const [specificDays, setSpecificDays] = useState([4]); // Default to Friday (4)
   const [duration, setDuration] = useState(20);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('07:00 AM');
   const [submitting, setSubmitting] = useState(false);
 
@@ -46,6 +48,7 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
           : [4]
       );
       setDuration(habit?.target_duration_minutes || 20);
+      setReminderEnabled(habit?.reminder_enabled ?? Boolean(habit?.reminder_time));
       setReminderTime(habit?.reminder_time || '07:00 AM');
     }
   }, [isOpen, habit]);
@@ -121,7 +124,8 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
       last_surah_number: surahNum,
       last_ayah_number: category === 'quran' && surahNum ? (parseInt(startingAyah, 10) || 1) : null,
       icon: category === 'quran' ? 'BookOpen' : (habit?.icon || 'CheckCircle2'),
-      reminder_time: reminderTime,
+      reminder_time: reminderEnabled ? (reminderTime || '07:00 AM') : '',
+      reminder_enabled: reminderEnabled,
     };
 
     try {
@@ -399,28 +403,70 @@ export const HabitFormModal = ({ isOpen, onClose, habit, onSaved }) => {
           </div>
         )}
 
-        {/* Target Duration & Clock Reminder Picker */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Target Duration (Mins)
+        {/* Target Duration */}
+        <div>
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+            Target Duration (Mins)
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-islamic-primary-500"
+          />
+        </div>
+
+        {/* Dedicated Background Push Notification Options Card */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className={`p-2 rounded-xl border transition-colors ${reminderEnabled ? 'bg-[#088ac1]/15 text-[#088ac1] dark:text-[#3dc3f3] border-[#3dc3f3]/40' : 'bg-slate-200/60 dark:bg-slate-700 text-slate-500 border-slate-300 dark:border-slate-600'}`}>
+                <Bell className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                  Push Reminder Notification
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Sends background alert even when app is closed
+                </p>
+              </div>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reminderEnabled}
+                onChange={(e) => {
+                  setReminderEnabled(e.target.checked);
+                  if (e.target.checked && notificationPermission !== 'granted') {
+                    openNotificationModal();
+                  }
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-[#088ac1]"></div>
             </label>
-            <input
-              type="number"
-              min="1"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-islamic-border-light dark:border-islamic-border-dark bg-white dark:bg-islamic-card-dark text-slate-900 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-islamic-primary-500"
-            />
           </div>
 
-          {/* Interactive Clock Model for Habit Time Setting */}
-          <TimePickerField
-            value={reminderTime}
-            onChange={(newTime) => setReminderTime(newTime)}
-            label="Reminder Time (Clock)"
-            modalTitle={habit?.id ? `Set Reminder for ${name || 'Habit'}` : 'Set Habit Reminder Time'}
-          />
+          {reminderEnabled && (
+            <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700/80 space-y-2.5 animate-fade-in">
+              <TimePickerField
+                value={reminderTime}
+                onChange={(newTime) => setReminderTime(newTime)}
+                label="Daily Reminder Time (Clock)"
+                modalTitle={habit?.id ? `Set Reminder for ${name || 'Habit'}` : 'Set Habit Reminder Time'}
+              />
+
+              <div className="flex items-start gap-2 p-2.5 rounded-xl bg-[#e1f3fd]/80 dark:bg-[#0f4d6b]/30 border border-[#bce8fb] dark:border-[#0b5d81]/60 text-[11px] text-[#076e9d] dark:text-[#81d7f8]">
+                <BellRing className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#088ac1] dark:text-[#3dc3f3]" />
+                <span className="leading-relaxed">
+                  <strong>Active Background Alert:</strong> Web Push notification will trigger at <strong>{reminderTime}</strong> on scheduled days even if this app and browser are closed.
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons: Sticky Pin to Ensure Always Visible on Mobile */}

@@ -57,6 +57,7 @@ export const NotificationPermissionModal = ({ isOpen, onClose }) => {
     notificationPermission,
     notificationDuration,
     enableNotificationsWithDuration,
+    testBackgroundPush,
   } = useNotification();
 
   const [selectedDuration, setSelectedDuration] = useState(notificationDuration || 'forever');
@@ -174,17 +175,31 @@ export const NotificationPermissionModal = ({ isOpen, onClose }) => {
           </div>
 
           {/* Footer Action Buttons */}
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2.5">
-            <Button
-              type="button"
-              variant="secondary"
-              size="md"
-              onClick={onClose}
-              disabled={submitting}
-              className="w-full sm:w-auto"
-            >
-              Not Now
-            </Button>
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
+            {isAlreadyGranted ? (
+              <button
+                type="button"
+                onClick={() => testBackgroundPush()}
+                className="w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-semibold text-[#088ac1] dark:text-[#3dc3f3] hover:bg-[#e1f3fd] dark:hover:bg-[#0f4d6b]/30 border border-[#bce8fb] dark:border-[#0b5d81] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <BellRing className="w-3.5 h-3.5" />
+                <span>Test Background Push</span>
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={onClose}
+                disabled={submitting}
+                className="w-full sm:w-auto"
+              >
+                {isAlreadyGranted ? 'Done' : 'Not Now'}
+              </Button>
             <Button
               type="button"
               variant="primary"
@@ -213,6 +228,7 @@ export const NotificationPermissionModal = ({ isOpen, onClose }) => {
           </div>
         </div>
       </div>
+    </div>
   );
 
   return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
