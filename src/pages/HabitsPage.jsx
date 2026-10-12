@@ -19,20 +19,16 @@ import { QuranLogModal } from '../components/modals/QuranLogModal';
 import { useNotification } from '../context/NotificationContext';
 import { useDayWatch } from '../context/DayWatchContext';
 import { Button } from '../components/common/UIComponents';
-import { getLocalDateString, isHabitScheduledToday, parseSpecificDays, getDailyCache, setDailyCache, invalidateDailyActivityCaches } from '../utils/dateUtils';
+import { getLocalDateString, isHabitScheduledToday, parseSpecificDays } from '../utils/dateUtils';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const CACHE_HABITS_PAGE_KEY = 'cached_habits_page';
 
 export const HabitsPage = () => {
   const navigate = useNavigate();
   const { todayDate, revision, triggerRevision } = useDayWatch();
-  const [habits, setHabits] = useState(() => getDailyCache(CACHE_HABITS_PAGE_KEY, []));
-  const [loading, setLoading] = useState(() => {
-    const cached = getDailyCache(CACHE_HABITS_PAGE_KEY, null);
-    return !cached || cached.length === 0;
-  });
+  const [habits, setHabits] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [pendingHabitIds, setPendingHabitIds] = useState(new Set());
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
@@ -48,7 +44,6 @@ export const HabitsPage = () => {
       const res = await habitApi.getHabits(params);
       const data = res.data || [];
       setHabits(data);
-      setDailyCache(CACHE_HABITS_PAGE_KEY, data, localDate);
     } catch (e) {
       console.error('Failed to load habits:', e);
     } finally {
@@ -103,7 +98,6 @@ export const HabitsPage = () => {
         }
         return h;
       });
-      setDailyCache(CACHE_HABITS_PAGE_KEY, updated, localDate);
       return updated;
     });
 
@@ -127,11 +121,9 @@ export const HabitsPage = () => {
             }
             return h;
           });
-          setDailyCache(CACHE_HABITS_PAGE_KEY, next, localDate);
           return next;
         });
       }
-      invalidateDailyActivityCaches(localDate);
       if (triggerRevision) triggerRevision();
     } catch (e) {
       console.error('Failed to toggle habit:', e);

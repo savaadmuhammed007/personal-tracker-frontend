@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { NotificationPermissionModal } from '../components/modals/NotificationPermissionModal';
 import { remindersApi } from '../api/remindersApi';
+import { settingsApi } from '../api/settingsApi';
+import { useAuth } from './AuthContext';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -16,14 +18,22 @@ function urlBase64ToUint8Array(base64String) {
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
+  const { profile, isAuthenticated } = useAuth();
   const [toasts, setToasts] = useState([]);
   const [notificationPermission, setNotificationPermission] = useState(() => {
     return 'Notification' in window ? Notification.permission : 'unsupported';
   });
   const [notificationDuration, setNotificationDuration] = useState(() => {
-    return localStorage.getItem('notification_duration') || 'forever';
+    return profile?.notification_duration || 'forever';
   });
   const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+
+  // Sync notificationDuration when cloud profile updates
+  useEffect(() => {
+    if (profile?.notification_duration && profile.notification_duration !== notificationDuration) {
+      setNotificationDuration(profile.notification_duration);
+    }
+  }, [profile?.notification_duration]);
 
   const audioCtxRef = useRef(null);
 
@@ -72,8 +82,9 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [subscribeWebPush]);
 
-  // Synthesize pleasant acoustic chime using Web Audio API (reusing singleton context)
+  // Synthesize pleasant acoustic chime using Web Audio API (respects cloud profile preference)
   const playChime = useCallback((type = 'complete') => {
+    if (profile && profile.sound_enabled === false) return;
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -105,13 +116,14 @@ export const NotificationProvider = ({ children }) => {
     } catch {
       // AudioContext might be blocked until user gesture
     }
-  }, []);
+  }, [profile?.sound_enabled]);
 
   const triggerHaptic = useCallback((pattern = 25) => {
+    if (profile && profile.haptic_enabled === false) return;
     if (navigator.vibrate) {
       navigator.vibrate(pattern);
     }
-  }, []);
+  }, [profile?.haptic_enabled]);
 
   const showToast = useCallback((title, message = '', type = 'success') => {
     const id = Date.now() + Math.random();
@@ -150,20 +162,15 @@ export const NotificationProvider = ({ children }) => {
       setNotificationPermission(permission);
 
       if (permission === 'granted') {
-        localStorage.setItem('notification_duration', durationChoice);
         setNotificationDuration(durationChoice);
 
-        if (durationChoice === '1_hour') {
-          const expiryTime = Date.now() + 60 * 60 * 1000;
-          localStorage.setItem('notification_expiry', String(expiryTime));
-        } else {
-          localStorage.removeItem('notification_expiry');
-        }
-
-        if (durationChoice === 'close_site') {
-          sessionStorage.setItem('notification_session_active', 'true');
-        } else {
-          sessionStorage.removeItem('notification_session_active');
+        // Save preference directly to cloud database
+        if (isAuthenticated) {
+          try {
+            await settingsApi.updateSettings({ notification_duration: durationChoice });
+          } catch (cloudErr) {
+            console.warn('Failed to persist notification duration to cloud:', cloudErr);
+          }
         }
 
         const durationLabels = {

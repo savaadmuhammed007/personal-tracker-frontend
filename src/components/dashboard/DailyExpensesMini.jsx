@@ -13,16 +13,13 @@ import {
 } from 'lucide-react';
 import { expenseApi } from '../../api/expenseApi';
 import { formatCurrency } from '../../data/expenseCategories';
-import { getLocalDateString, getDailyCache, setDailyCache } from '../../utils/dateUtils';
+import { getLocalDateString } from '../../utils/dateUtils';
 import { TransactionModal } from '../modals/TransactionModal';
 
-const CACHE_ACCOUNTS_KEY = 'cached_expense_accounts';
-const CACHE_DAILY_PREFIX = 'cached_daily_report_';
-
 export const DailyExpensesMini = ({ onDataChanged }) => {
-  const today = getLocalDateString();
-  const [dailyReport, setDailyReport] = useState(() => getDailyCache(`${CACHE_DAILY_PREFIX}${today}`, null, today));
-  const [accounts, setAccounts] = useState(() => getDailyCache(CACHE_ACCOUNTS_KEY, []));
+  const [dailyReport, setDailyReport] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [txModalType, setTxModalType] = useState('expense');
@@ -37,11 +34,6 @@ export const DailyExpensesMini = ({ onDataChanged }) => {
       const accData = Array.isArray(accRes.data) ? accRes.data : accRes.data?.results || [];
       setAccounts(accData);
       setDailyReport(repRes.data);
-
-      setDailyCache(CACHE_ACCOUNTS_KEY, accData);
-      if (repRes.data) {
-        setDailyCache(`${CACHE_DAILY_PREFIX}${todayStr}`, repRes.data, todayStr);
-      }
     } catch (e) {
       console.error('Failed to load mini expenses widget:', e);
     } finally {

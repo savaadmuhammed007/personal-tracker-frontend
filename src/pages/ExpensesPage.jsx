@@ -46,17 +46,13 @@ import {
 } from 'lucide-react';
 import { expenseApi } from '../api/expenseApi';
 import { useNotification } from '../context/NotificationContext';
-import { getLocalDateString, getDailyCache, setDailyCache } from '../utils/dateUtils';
+import { getLocalDateString } from '../utils/dateUtils';
 import { formatCurrency } from '../data/expenseCategories';
 import { TransactionModal } from '../components/modals/TransactionModal';
 import { OpeningBalanceModal } from '../components/modals/OpeningBalanceModal';
 import { AccountFormModal } from '../components/modals/AccountFormModal';
 import { AccountStatementModal } from '../components/modals/AccountStatementModal';
 import { ExpenseAnalyticsView } from '../components/expenses/ExpenseAnalyticsView';
-
-const CACHE_ACCOUNTS_KEY = 'cached_expense_accounts';
-const CACHE_DAILY_PREFIX = 'cached_daily_report_';
-const CACHE_ANALYTICS_PREFIX = 'cached_expense_analytics_';
 
 const ICON_MAP = {
   Utensils,
@@ -103,12 +99,12 @@ export const ExpensesPage = () => {
     return `${y}-${m}`;
   });
 
-  // Data states initialized from instant local cache (0ms perceived lag)
-  const [accounts, setAccounts] = useState(() => getDailyCache(CACHE_ACCOUNTS_KEY, []));
-  const [dailyReport, setDailyReport] = useState(() => getDailyCache(`${CACHE_DAILY_PREFIX}${selectedDate}`, null, selectedDate));
-  const [analyticsData, setAnalyticsData] = useState(() => getDailyCache(`${CACHE_ANALYTICS_PREFIX}${selectedMonth}`, null));
+  // Data states directly managed from cloud backend
+  const [accounts, setAccounts] = useState([]);
+  const [dailyReport, setDailyReport] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
   const [allTransactions, setAllTransactions] = useState([]);
-  const [loading, setLoading] = useState(() => !accounts.length && !dailyReport);
+  const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Filters for ledger / transactions
@@ -130,7 +126,7 @@ export const ExpensesPage = () => {
   const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
   const [selectedStatementAccount, setSelectedStatementAccount] = useState(null);
 
-  // Fetch Accounts & Daily Report with silent background update
+  // Fetch Accounts & Daily Report directly from cloud API
   const loadDailyData = useCallback(async () => {
     try {
       const [accRes, repRes] = await Promise.all([
@@ -140,11 +136,6 @@ export const ExpensesPage = () => {
       const accList = Array.isArray(accRes.data) ? accRes.data : accRes.data?.results || [];
       setAccounts(accList);
       setDailyReport(repRes.data);
-
-      setDailyCache(CACHE_ACCOUNTS_KEY, accList);
-      if (repRes.data) {
-        setDailyCache(`${CACHE_DAILY_PREFIX}${selectedDate}`, repRes.data, selectedDate);
-      }
     } catch (err) {
       console.error('Failed to load daily expense data:', err);
     } finally {
@@ -152,15 +143,12 @@ export const ExpensesPage = () => {
     }
   }, [selectedDate]);
 
-  // Fetch Monthly Analytics with silent background update
+  // Fetch Monthly Analytics directly from cloud API
   const loadAnalyticsData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     try {
       const res = await expenseApi.getSummaryAnalytics({ month: selectedMonth });
       setAnalyticsData(res.data);
-      if (res.data) {
-        setDailyCache(`${CACHE_ANALYTICS_PREFIX}${selectedMonth}`, res.data);
-      }
     } catch (err) {
       console.error('Failed to load analytics:', err);
     } finally {

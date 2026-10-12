@@ -2,29 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Clock, CheckCircle2, Repeat, Sun, CheckSquare } from 'lucide-react';
 import { timelineApi } from '../../api/timelineApi';
 import { useDayWatch } from '../../context/DayWatchContext';
-import { getLocalDateString, getDailyCache, setDailyCache } from '../../utils/dateUtils';
-
-const CACHE_TIMELINE_KEY = 'cached_daily_timeline';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 export const ChronologicalTimelineMini = ({ refreshTrigger, date }) => {
   const { todayDate, revision } = useDayWatch();
   const effectiveDate = date || todayDate || getLocalDateString();
-  const [timeline, setTimeline] = useState(() => getDailyCache(CACHE_TIMELINE_KEY, [], effectiveDate));
-  const [loading, setLoading] = useState(() => {
-    const cached = getDailyCache(CACHE_TIMELINE_KEY, null, effectiveDate);
-    return !cached || cached.length === 0;
-  });
+  const [timeline, setTimeline] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     const targetDate = date || todayDate || getLocalDateString();
-    const cached = getDailyCache(CACHE_TIMELINE_KEY, null, targetDate);
-    if (cached) {
-      setTimeline(cached);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
+    setLoading(true);
 
     const fetchTimeline = async () => {
       try {
@@ -32,7 +21,6 @@ export const ChronologicalTimelineMini = ({ refreshTrigger, date }) => {
         if (isMounted) {
           const list = Array.isArray(res.data?.timeline) ? res.data.timeline : Array.isArray(res.data) ? res.data : [];
           setTimeline(list);
-          setDailyCache(CACHE_TIMELINE_KEY, list, targetDate);
         }
       } catch (e) {
         console.error('Failed to load timeline:', e);
@@ -56,6 +44,9 @@ export const ChronologicalTimelineMini = ({ refreshTrigger, date }) => {
   };
 
   const formatItemTime = (item) => {
+    if (item.time_formatted && item.time_formatted !== 'Completed' && item.time_formatted !== 'Logged' && item.time_formatted !== 'Done') {
+      return item.time_formatted;
+    }
     if (item.timestamp) {
       try {
         const dt = new Date(item.timestamp);

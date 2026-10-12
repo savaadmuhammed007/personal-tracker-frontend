@@ -6,37 +6,9 @@ import { useDayWatch } from './DayWatchContext';
 import { getLocalDateString, invalidateDailyActivityCaches } from '../utils/dateUtils';
 
 const PrayerContext = createContext(null);
-const PRAYER_CACHE_KEY = 'cached_prayer_data';
 
 const getInitialPrayerData = () => {
   const todayStr = getLocalDateString();
-  try {
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(PRAYER_CACHE_KEY) : null;
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') {
-        // If cache is from today, use it directly
-        if (parsed.date === todayStr && Array.isArray(parsed.prayers) && parsed.prayers.length > 0) {
-          return parsed;
-        }
-        // If cache is from yesterday or previous day, retain location/timetable but reset completed prayer statuses
-        if (Array.isArray(parsed.prayers)) {
-          return {
-            ...parsed,
-            date: todayStr,
-            completed_count: 0,
-            completion_percentage: 0,
-            prayers: parsed.prayers.map((p) => ({
-              ...p,
-              status: 'pending',
-              completed_at: null,
-              notes: '',
-            })),
-          };
-        }
-      }
-    }
-  } catch {}
   return {
     date: todayStr,
     completed_count: 0,
@@ -56,12 +28,12 @@ const getInitialPrayerData = () => {
       country: 'Saudi Arabia',
       latitude: 21.4225,
       longitude: 39.8262,
-      timezone: 'Asia/Riyadh',
+      timezone: 'UTC',
     },
     settings: {
-      calculation_method: 'Umm Al-Qura University, Makkah',
+      calculation_method: 'MWL',
       asr_method: 'Standard',
-      method: 'Umm Al-Qura University, Makkah',
+      method: 'Muslim World League',
     },
   };
 };
@@ -72,11 +44,10 @@ export const PrayerProvider = ({ children }) => {
   const [data, setData] = useState(getInitialPrayerData);
   const [isLoading, setIsLoading] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-  const hasLoadedRef = useRef(Boolean(data.prayers && data.prayers.length > 0));
+  const hasLoadedRef = useRef(false);
 
   const fetchTodayPrayers = useCallback(async (dateStr) => {
     const targetDate = dateStr || getLocalDateString();
-    // Only show blocking loader if no prayer data exists yet
     if (!hasLoadedRef.current) {
       setIsLoading(true);
     }
@@ -86,15 +57,18 @@ export const PrayerProvider = ({ children }) => {
         const payloadWithDate = {
           ...res.data,
           date: targetDate,
+          settings: res.data.settings || {
+            calculation_method: res.data.location?.calculation_method || 'MWL',
+            asr_method: res.data.location?.asr_method || 'Standard',
+            method: res.data.location?.method || 'Muslim World League',
+            hijri_adjustment: res.data.location?.hijri_adjustment ?? 0,
+          },
         };
         setData(payloadWithDate);
         hasLoadedRef.current = true;
-        try {
-          localStorage.setItem(PRAYER_CACHE_KEY, JSON.stringify(payloadWithDate));
-        } catch {}
       }
     } catch (err) {
-      console.warn('Failed to load prayer times from server, using cached/local state:', err);
+      console.warn('Failed to load prayer times from cloud backend:', err);
     } finally {
       setIsLoading(false);
     }
@@ -237,9 +211,6 @@ export const PrayerProvider = ({ children }) => {
         completed_count: completedCount,
         completion_percentage: Math.round((completedCount / 5) * 100),
       };
-      try {
-        localStorage.setItem(PRAYER_CACHE_KEY, JSON.stringify(nextData));
-      } catch {}
       return nextData;
     });
 
@@ -251,9 +222,6 @@ export const PrayerProvider = ({ children }) => {
         notes,
       });
 
-      // Invalidate calendar & timeline caches so CalendarPage and Timeline update immediately
-      invalidateDailyActivityCaches(localDate);
-
       if (triggerRevision) {
         triggerRevision();
       }
@@ -262,9 +230,6 @@ export const PrayerProvider = ({ children }) => {
       const res = await prayerApi.getToday(localDate);
       if (res?.data && Array.isArray(res.data.prayers) && res.data.prayers.length > 0) {
         setData(res.data);
-        try {
-          localStorage.setItem(PRAYER_CACHE_KEY, JSON.stringify(res.data));
-        } catch {}
       }
     } catch (err) {
       console.warn('Network issue during prayer toggle, retaining optimistic checkmark:', err);

@@ -15,20 +15,16 @@ import { awradApi } from '../api/awradApi';
 import { taskApi } from '../api/taskApi';
 import { usePrayers } from '../context/PrayerContext';
 import { useDayWatch } from '../context/DayWatchContext';
-import { getLocalDateString, isHabitScheduledToday, getDailyCache, setDailyCache, invalidateDailyActivityCaches } from '../utils/dateUtils';
-
-const CACHE_HABITS_KEY = 'cached_dashboard_habits';
-const CACHE_AWRAD_KEY = 'cached_dashboard_awrad';
-const CACHE_TASKS_KEY = 'cached_dashboard_tasks';
+import { getLocalDateString, isHabitScheduledToday } from '../utils/dateUtils';
 
 export const HomePage = () => {
   const { completed_count: prayersCompleted } = usePrayers();
   const { todayDate, revision, triggerRevision } = useDayWatch();
 
-  // Instant render from date-validated localStorage cache (eliminates initial empty lag without showing stale completed checkmarks from yesterday!)
-  const [habits, setHabits] = useState(() => getDailyCache(CACHE_HABITS_KEY, []));
-  const [awrad, setAwrad] = useState(() => getDailyCache(CACHE_AWRAD_KEY, []));
-  const [tasks, setTasks] = useState(() => getDailyCache(CACHE_TASKS_KEY, []));
+  // Cloud-first state: loaded directly from database API without stale device caching
+  const [habits, setHabits] = useState([]);
+  const [awrad, setAwrad] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [timelineRefresh, setTimelineRefresh] = useState(0);
 
   // Modals state
@@ -60,10 +56,6 @@ export const HomePage = () => {
       setAwrad(awradData);
       setTasks(tasksData);
       setTimelineRefresh((prev) => prev + 1);
-
-      setDailyCache(CACHE_HABITS_KEY, habitsData, localDate);
-      setDailyCache(CACHE_AWRAD_KEY, awradData, localDate);
-      setDailyCache(CACHE_TASKS_KEY, tasksData, localDate);
     } catch (e) {
       console.error('Failed to load dashboard data:', e);
     }
@@ -117,7 +109,6 @@ export const HomePage = () => {
         }
         return h;
       });
-      setDailyCache(CACHE_HABITS_KEY, updated, localDate);
       return updated;
     });
 
@@ -142,11 +133,9 @@ export const HomePage = () => {
             }
             return h;
           });
-          setDailyCache(CACHE_HABITS_KEY, next, localDate);
           return next;
         });
       }
-      invalidateDailyActivityCaches(localDate);
       if (triggerRevision) triggerRevision();
       setTimelineRefresh((prev) => prev + 1);
       return res;
@@ -166,7 +155,6 @@ export const HomePage = () => {
 
     setTasks((prev) => {
       const updated = prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus } : t));
-      setDailyCache(CACHE_TASKS_KEY, updated, localDate);
       return updated;
     });
 
@@ -176,7 +164,6 @@ export const HomePage = () => {
         is_completed: nextStatus === 'completed',
         action: nextStatus === 'completed' ? 'complete' : 'incomplete',
       });
-      invalidateDailyActivityCaches(localDate);
       if (triggerRevision) triggerRevision();
       setTimelineRefresh((prev) => prev + 1);
       return res;

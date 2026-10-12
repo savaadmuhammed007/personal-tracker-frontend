@@ -200,6 +200,7 @@ export const SettingsPage = () => {
   const [prayerNotifs, setPrayerNotifs] = useState(true);
   const [habitNotifs, setHabitNotifs] = useState(true);
   const [taskNotifs, setTaskNotifs] = useState(true);
+  const [notificationDuration, setNotificationDuration] = useState('forever');
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -307,6 +308,7 @@ export const SettingsPage = () => {
         setPrayerNotifs(p.prayer_notifications ?? true);
         setHabitNotifs(p.habit_notifications ?? true);
         setTaskNotifs(p.task_notifications ?? true);
+        if (p.notification_duration) setNotificationDuration(p.notification_duration);
       } catch (e) {
         console.error('Failed to load settings:', e);
       }
@@ -347,6 +349,7 @@ export const SettingsPage = () => {
         prayer_notifications: prayerNotifs,
         habit_notifications: habitNotifs,
         task_notifications: taskNotifs,
+        notification_duration: notificationDuration,
         theme,
       });
       setSavedManualAdj(manualAdj);
@@ -999,6 +1002,29 @@ export const SettingsPage = () => {
                 className="w-4 h-4 text-islamic-primary-600 rounded focus:ring-islamic-primary-500 cursor-pointer"
               />
             </label>
+
+            {/* Notification Schedule Duration */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2">
+              <div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-sky-500" />
+                  Active Alert Session
+                </span>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                  Choose how long notification reminders remain active
+                </p>
+              </div>
+              <select
+                value={notificationDuration}
+                onChange={(e) => setNotificationDuration(e.target.value)}
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+              >
+                <option value="forever">Forever (Always On - Recommended)</option>
+                <option value="1_hour">For 1 Hour</option>
+                <option value="close_site">Until I Close Site</option>
+                <option value="prayer_only">Prayer Times Only</option>
+              </select>
+            </div>
           </div>
         </div>
 

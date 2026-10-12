@@ -9,10 +9,7 @@ import {
 } from 'lucide-react';
 import { calendarApi } from '../api/calendarApi';
 import { useDayWatch } from '../context/DayWatchContext';
-import { getLocalDateString, getDailyCache, setDailyCache } from '../utils/dateUtils';
-
-const CACHE_CALENDAR_MONTH_PREFIX = 'cached_calendar_month_';
-const CACHE_CALENDAR_DAY_PREFIX = 'cached_calendar_day_';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export const CalendarPage = () => {
   const { todayDate, revision } = useDayWatch();
@@ -21,50 +18,24 @@ export const CalendarPage = () => {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
   const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
 
-  const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-  const [monthData, setMonthData] = useState(() => {
-    try {
-      const raw = localStorage.getItem(`${CACHE_CALENDAR_MONTH_PREFIX}${monthKey}`);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [dayDetails, setDayDetails] = useState(() => getDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${getLocalDateString()}`, null, getLocalDateString()));
+  const [monthData, setMonthData] = useState(null);
+  const [dayDetails, setDayDetails] = useState(null);
   const [loadingDay, setLoadingDay] = useState(false);
 
   const fetchMonthData = useCallback(async () => {
-    const mKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-    const storageKey = `${CACHE_CALENDAR_MONTH_PREFIX}${mKey}`;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        setMonthData(JSON.parse(raw));
-      }
-    } catch {}
     try {
       const res = await calendarApi.getMonth(currentYear, currentMonth);
       setMonthData(res.data);
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(res.data));
-      } catch {}
     } catch (_err) {
       console.error('Failed to load month calendar:', _err);
     }
   }, [currentYear, currentMonth]);
 
   const fetchDayDetails = useCallback(async (dateStr) => {
-    const cached = getDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${dateStr}`, null, dateStr);
-    if (cached) {
-      setDayDetails(cached);
-      setLoadingDay(false);
-    } else {
-      setLoadingDay(true);
-    }
+    setLoadingDay(true);
     try {
       const res = await calendarApi.getDayDetails(dateStr);
       setDayDetails(res.data);
-      setDailyCache(`${CACHE_CALENDAR_DAY_PREFIX}${dateStr}`, res.data, dateStr);
     } catch (e) {
       console.error('Failed to load day details:', e);
     } finally {
@@ -73,6 +44,9 @@ export const CalendarPage = () => {
   }, []);
 
   const formatGridTime = (row) => {
+    if (row.time && row.time !== '-' && row.time !== '—') {
+      return row.time;
+    }
     if (row.exact_timestamp) {
       try {
         const dt = new Date(row.exact_timestamp);

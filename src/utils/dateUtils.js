@@ -1,8 +1,10 @@
 /**
- * Date, Timezone and Daily Caching Utilities
- * Ensures the frontend always operates against the client's local calendar date
- * so that server UTC midnight shifts or day rollovers do not desynchronize
- * completed habits, prayers, tasks, or awrad.
+ * Date, Timezone & Cloud Synchronization Utilities
+ * 
+ * Strict Cloud-First Policy:
+ * All application state, completions, streaks, and user preferences are sourced
+ * exclusively from the cloud database (PostgreSQL on Supabase) via the API.
+ * NO device storing / localStorage caching of activity completions or preferences.
  */
 
 export const getLocalDateString = (d = new Date()) => {
@@ -80,151 +82,58 @@ export const isHabitScheduledToday = (habit, targetDate = getLocalDateString()) 
 };
 
 /**
- * Sanitizes cached items from a past date to remove stale completion checkmarks/counts
- * while keeping layout-ready entities for zero-lag instant rendering.
+ * Pure Cloud-First Helpers:
+ * We deliberately DO NOT store application entities (habits, prayers, tasks, awrad)
+ * in localStorage, ensuring the user's view is always 100% verified against the cloud database.
  */
-export const sanitizeDailyCacheList = (key, list, targetDate = getLocalDateString()) => {
-  if (!Array.isArray(list)) return [];
-  if (key.includes('habits')) {
-    return list.map((h) => ({
-      ...h,
-      today_completion: null,
-      is_scheduled_today: isHabitScheduledToday(h, targetDate),
-    }));
-  }
-  if (key.includes('awrad')) {
-    return list.map((a) => ({
-      ...a,
-      today_count: 0,
-      is_completed: false,
-      progress_percentage: 0,
-    }));
-  }
-  if (key.includes('tasks')) {
-    // For tasks, remove completed ones from previous day
-    return list.filter((t) => t && t.status !== 'completed');
-  }
-  if (key.includes('timeline')) {
-    // Previous day's activity timeline must not leak into today's timeline
-    return [];
-  }
-  return list;
+export const getDailyCache = (_key, defaultVal = null, _targetDate = getLocalDateString()) => {
+  // Always return defaultVal so fresh cloud data is fetched from the server.
+  return defaultVal;
+};
+
+export const setDailyCache = (_key, _data, _targetDate = getLocalDateString()) => {
+  // No-op: do not write activity data to device storage
+};
+
+export const clearDailyCache = (_key) => {
+  // No-op
+};
+
+export const invalidateDailyActivityCaches = (_dateStr = getLocalDateString()) => {
+  // No-op: in cloud mode, state updates trigger real network refetches without localStorage manipulation
 };
 
 /**
- * Invalidates and flushes short-lived daily caches across localStorage & sessionStorage
- * (invoked when an activity is completed, toggled, or bookmarked so timeline,
- * habits page, home page, and calendar day grid instantly reflect the latest database state)
+ * Purges legacy device caches that might linger from earlier offline/caching implementations.
  */
-export const invalidateDailyActivityCaches = (dateStr = getLocalDateString()) => {
-  try {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.removeItem('cached_daily_timeline');
-    localStorage.removeItem('cached_dashboard_habits');
-    localStorage.removeItem('cached_dashboard_awrad');
-    localStorage.removeItem('cached_dashboard_tasks');
-    localStorage.removeItem('cached_habits_page');
-    if (dateStr) {
-      localStorage.removeItem(`cached_calendar_day_${dateStr}`);
-    }
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.removeItem('cached_daily_timeline');
-      sessionStorage.removeItem('cached_dashboard_habits');
-      sessionStorage.removeItem('cached_habits_page');
-      if (dateStr) {
-        sessionStorage.removeItem(`cached_calendar_day_${dateStr}`);
-      }
-    }
-  } catch {}
-};
-
-/**
- * Date-aware localStorage reader.
- * Enforces that cached completion states only apply to the current targetDate.
- */
-export const getDailyCache = (key, defaultVal = null, targetDate = getLocalDateString()) => {
-  try {
-    if (typeof localStorage === 'undefined') return defaultVal;
-    const raw = localStorage.getItem(key);
-    if (!raw) return defaultVal;
-
-    const parsed = JSON.parse(raw);
-
-    // Enveloped format: { date: 'YYYY-MM-DD', data: ... }
-    if (parsed && typeof parsed === 'object' && 'date' in parsed && 'data' in parsed) {
-      if (parsed.date === targetDate) {
-        return parsed.data;
-      }
-      // If date mismatch, sanitize the old data to strip stale completion flags
-      if (Array.isArray(parsed.data)) {
-        return sanitizeDailyCacheList(key, parsed.data, targetDate);
-      }
-      return defaultVal;
-    }
-
-    // Legacy un-enveloped format: sanitize and re-envelope
-    if (Array.isArray(parsed)) {
-      return sanitizeDailyCacheList(key, parsed, targetDate);
-    }
-
-    return defaultVal;
-  } catch {
-    return defaultVal;
-  }
-};
-
-/**
- * Date-aware localStorage writer.
- * Saves payload tagged with the client's local calendar date.
- */
-export const setDailyCache = (key, data, targetDate = getLocalDateString()) => {
-  try {
-    if (typeof localStorage === 'undefined') return;
-    const envelope = {
-      date: targetDate,
-      saved_at: new Date().toISOString(),
-      data,
-    };
-    localStorage.setItem(key, JSON.stringify(envelope));
-  } catch {}
-};
-
-/**
- * Clears specific daily cache key
- */
-export const clearDailyCache = (key) => {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(key);
-    }
-  } catch {}
-};
-
-/**
- * Clears all application caches across localStorage & sessionStorage
- * (invoked upon user login / switch to prevent showing another account's cached data)
- */
-export const clearUserAppCaches = () => {
+export const purgeLegacyDeviceCaches = () => {
   try {
     if (typeof localStorage !== 'undefined') {
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && (k.startsWith('cached_') || k.startsWith('app_cache_'))) {
+        if (
+          k &&
+          (k.startsWith('cached_') ||
+            k.startsWith('app_cache_') ||
+            k.startsWith('pwa_') ||
+            k === 'notification_expiry' ||
+            k === 'notification_session_active')
+        ) {
           keysToRemove.push(k);
         }
       }
       keysToRemove.forEach((k) => localStorage.removeItem(k));
     }
     if (typeof sessionStorage !== 'undefined') {
-      const keysToRemove = [];
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const k = sessionStorage.key(i);
-        if (k && (k.startsWith('cached_') || k.startsWith('app_cache_'))) {
-          keysToRemove.push(k);
-        }
-      }
-      keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+      sessionStorage.clear();
     }
   } catch {}
 };
+
+export const clearUserAppCaches = () => {
+  purgeLegacyDeviceCaches();
+};
+
+// Automatically purge legacy caches on module load
+purgeLegacyDeviceCaches();
