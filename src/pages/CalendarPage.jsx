@@ -32,7 +32,9 @@ export const CalendarPage = () => {
   }, [currentYear, currentMonth]);
 
   const fetchDayDetails = useCallback(async (dateStr) => {
-    setLoadingDay(true);
+    if (!dayDetails || dayDetails.date !== dateStr) {
+      setLoadingDay(true);
+    }
     try {
       const res = await calendarApi.getDayDetails(dateStr);
       setDayDetails(res.data);
@@ -41,7 +43,7 @@ export const CalendarPage = () => {
     } finally {
       setLoadingDay(false);
     }
-  }, []);
+  }, [dayDetails]);
 
   const formatGridTime = (row) => {
     if (row.time && row.time !== '-' && row.time !== '—') {

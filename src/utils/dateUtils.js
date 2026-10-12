@@ -67,7 +67,14 @@ export const parseSpecificDays = (val) => {
 export const isHabitScheduledToday = (habit, targetDate = getLocalDateString()) => {
   if (!habit || habit.is_active === false) return false;
 
+  const currentLocal = getLocalDateString();
   const targetDateStr = typeof targetDate === 'string' ? targetDate : getLocalDateString(targetDate);
+
+  // If checking today and backend has already computed is_scheduled_today, trust it directly
+  if (targetDateStr === currentLocal && typeof habit.is_scheduled_today === 'boolean') {
+    return habit.is_scheduled_today;
+  }
+
   const weekday = getTodayWeekdayIndex(targetDateStr);
   const freq = habit.frequency || 'daily';
   const spec = parseSpecificDays(habit.specific_days);

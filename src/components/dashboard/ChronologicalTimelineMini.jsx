@@ -13,7 +13,9 @@ export const ChronologicalTimelineMini = ({ refreshTrigger, date }) => {
   useEffect(() => {
     let isMounted = true;
     const targetDate = date || todayDate || getLocalDateString();
-    setLoading(true);
+    if (timeline.length === 0) {
+      setLoading(true);
+    }
 
     const fetchTimeline = async () => {
       try {
@@ -75,8 +77,19 @@ export const ChronologicalTimelineMini = ({ refreshTrigger, date }) => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="py-8 text-center text-xs text-slate-400">Loading timeline...</div>
+      {loading && timeline.length === 0 ? (
+        <div className="space-y-3 py-2 animate-pulse">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50/60 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5">
+              <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
+                <div className="h-3 w-48 bg-slate-200 dark:bg-slate-800 rounded" />
+              </div>
+              <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+            </div>
+          ))}
+        </div>
       ) : timeline.length === 0 ? (
         <div className="py-8 text-center text-xs text-slate-400 bg-islamic-subtle-light/40 dark:bg-islamic-subtle-dark/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
           No activities completed today yet. Begin with your first prayer or habit!

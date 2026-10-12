@@ -23,6 +23,7 @@ export const HomePage = () => {
 
   // Cloud-first state: loaded directly from database API without stale device caching
   const [habits, setHabits] = useState([]);
+  const [habitsLoading, setHabitsLoading] = useState(true);
   const [awrad, setAwrad] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [timelineRefresh, setTimelineRefresh] = useState(0);
@@ -35,30 +36,39 @@ export const HomePage = () => {
   // Sequence guard against out-of-order responses
   const fetchSeqRef = useRef(0);
 
-  const fetchDashboardData = useCallback(async () => {
+  const fetchDashboardData = useCallback(() => {
     const currentSeq = ++fetchSeqRef.current;
     const localDate = getLocalDateString();
-    try {
-      const [habitsRes, awradRes, tasksRes] = await Promise.all([
-        habitApi.getHabits({ date: localDate }),
-        awradApi.getAwrad({ date: localDate }),
-        taskApi.getTasks({ filter: 'today', date: localDate }),
-      ]);
 
-      // Discard stale in-flight response if a newer fetch was triggered
-      if (currentSeq !== fetchSeqRef.current) return;
+    // 1. Fetch Habits independently & immediately so they render with zero delay
+    habitApi.getHabits({ date: localDate })
+      .then((res) => {
+        if (currentSeq !== fetchSeqRef.current) return;
+        const habitsData = Array.isArray(res?.data) ? res.data : res?.data?.results || [];
+        setHabits(habitsData);
+      })
+      .catch((e) => console.error('Failed to load habits:', e))
+      .finally(() => {
+        if (currentSeq === fetchSeqRef.current) setHabitsLoading(false);
+      });
 
-      const habitsData = Array.isArray(habitsRes?.data) ? habitsRes.data : habitsRes?.data?.results || [];
-      const awradData = Array.isArray(awradRes?.data) ? awradRes.data : awradRes?.data?.results || [];
-      const tasksData = Array.isArray(tasksRes?.data) ? tasksRes.data : tasksRes?.data?.results || [];
+    // 2. Fetch Awrad independently
+    awradApi.getAwrad({ date: localDate })
+      .then((res) => {
+        if (currentSeq !== fetchSeqRef.current) return;
+        const awradData = Array.isArray(res?.data) ? res.data : res?.data?.results || [];
+        setAwrad(awradData);
+      })
+      .catch((e) => console.error('Failed to load awrad:', e));
 
-      setHabits(habitsData);
-      setAwrad(awradData);
-      setTasks(tasksData);
-      setTimelineRefresh((prev) => prev + 1);
-    } catch (e) {
-      console.error('Failed to load dashboard data:', e);
-    }
+    // 3. Fetch Tasks independently
+    taskApi.getTasks({ filter: 'today', date: localDate })
+      .then((res) => {
+        if (currentSeq !== fetchSeqRef.current) return;
+        const tasksData = Array.isArray(res?.data) ? res.data : res?.data?.results || [];
+        setTasks(tasksData);
+      })
+      .catch((e) => console.error('Failed to load tasks:', e));
   }, []);
 
   // Fetch on mount, on day rollover, or on revision trigger
@@ -243,6 +253,7 @@ export const HomePage = () => {
       <div id="habits-section">
         <DailyHabitsSection
           habitsList={safeHabits}
+          isLoading={habitsLoading}
           onHabitUpdated={fetchDashboardData}
           onToggleHabit={handleOptimisticToggleHabit}
           onOpenQuranModal={(habit) => setSelectedQuranHabit(habit)}

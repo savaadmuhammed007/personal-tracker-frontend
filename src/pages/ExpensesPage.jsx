@@ -160,13 +160,23 @@ export const ExpensesPage = () => {
 
   // Fetch Ledger Transactions
   const loadLedgerTransactions = useCallback(async () => {
-    setLoading(true);
+    if (allTransactions.length === 0) {
+      setLoading(true);
+    }
     try {
       const params = {};
       if (selectedAccountFilter !== 'all') params.account = selectedAccountFilter;
       if (selectedTypeFilter !== 'all') params.type = selectedTypeFilter;
       if (searchQuery.trim()) params.search = searchQuery.trim();
       if (ledgerDateFilter) params.date = ledgerDateFilter;
+
+      // Ensure accounts list is loaded for account filters and labels
+      if (accounts.length === 0) {
+        expenseApi.getAccounts().then((accRes) => {
+          const accList = Array.isArray(accRes.data) ? accRes.data : accRes.data?.results || [];
+          setAccounts(accList);
+        }).catch(console.error);
+      }
 
       const res = await expenseApi.getTransactions(params);
       const list = Array.isArray(res.data) ? res.data : res.data?.results || [];
@@ -176,7 +186,7 @@ export const ExpensesPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedAccountFilter, selectedTypeFilter, searchQuery, ledgerDateFilter]);
+  }, [selectedAccountFilter, selectedTypeFilter, searchQuery, ledgerDateFilter, accounts.length, allTransactions.length]);
 
   // Effects
   useEffect(() => {
@@ -1364,7 +1374,22 @@ export const ExpensesPage = () => {
 
           {/* Grouped Ledger by Transaction Date */}
           <div className="space-y-4">
-            {groupedLedgerByDate.length === 0 ? (
+            {loading && groupedLedgerByDate.length === 0 ? (
+              <div className="space-y-3 animate-pulse">
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n} className="p-4 rounded-2xl bg-white/70 dark:bg-[#0b1822]/70 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800" />
+                      <div className="space-y-1.5">
+                        <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
+                        <div className="h-3 w-40 bg-slate-200 dark:bg-slate-800 rounded" />
+                      </div>
+                    </div>
+                    <div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : groupedLedgerByDate.length === 0 ? (
               <div className="p-8 rounded-3xl bg-white dark:bg-[#0b1822] border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400">
                 No matching transactions found {ledgerDateFilter ? `for ${ledgerDateFilter}` : ''}.
               </div>
@@ -1577,7 +1602,7 @@ export const ExpensesPage = () => {
         transaction={editingTransaction}
         accounts={accounts}
         initialType={txModalType}
-        initialDate={selectedDate}
+        initialDate={activeTab === 'ledger' && ledgerDateFilter ? ledgerDateFilter : selectedDate}
         onSaved={handleRefresh}
       />
 

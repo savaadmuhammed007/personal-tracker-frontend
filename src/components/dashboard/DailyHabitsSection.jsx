@@ -7,7 +7,14 @@ import { getLocalDateString, isHabitScheduledToday, parseSpecificDays } from '..
 
 const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, onOpenQuranModal, onOpenAddModal }) => {
+export const DailyHabitsSection = ({
+  habitsList,
+  isLoading = false,
+  onHabitUpdated,
+  onToggleHabit,
+  onOpenQuranModal,
+  onOpenAddModal,
+}) => {
   const { todayDate } = useDayWatch();
   const { showToast } = useNotification();
   const [pendingHabitIds, setPendingHabitIds] = useState(new Set());
@@ -88,7 +95,26 @@ export const DailyHabitsSection = ({ habitsList, onHabitUpdated, onToggleHabit, 
         )}
       </div>
 
-      {todayHabits.length === 0 ? (
+      {isLoading && todayHabits.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {[1, 2, 3, 4].map((n) => (
+            <div
+              key={n}
+              className="p-4 rounded-2xl bg-white/70 dark:bg-[#0b1822]/70 border border-slate-200/80 dark:border-slate-800/80 animate-pulse space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                <div className="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              </div>
+              <div className="h-5 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+              <div className="flex items-center justify-between pt-2">
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" />
+                <div className="h-7 w-7 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : todayHabits.length === 0 ? (
         <div className="p-8 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
           <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
             No habits scheduled for today.
