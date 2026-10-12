@@ -30,19 +30,35 @@ export const AuthProvider = ({ children }) => {
     let isMounted = true;
     const storedToken = localStorage.getItem('access_token');
     const storedUser = localStorage.getItem('user_data');
+    const expectedUsername = localStorage.getItem('last_active_username');
 
     if (storedToken) {
       setToken(storedToken);
+      let parsedUser = null;
       if (storedUser) {
         try {
-          setUser(JSON.parse(storedUser));
+          parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
         } catch {}
       }
       authApi.getMe()
         .then((res) => {
           if (isMounted && res.data) {
+            // Guard against stale SQLite token conflict:
+            // If the user was expecting to be savaadmuhammed, but an old token returned demo:
+            if (
+              (expectedUsername === 'savaadmuhammed' || parsedUser?.username === 'savaadmuhammed') &&
+              res.data.username !== 'savaadmuhammed'
+            ) {
+              console.warn('Stale token user mismatch. Auto re-logging in as owner...');
+              ownerLogin().catch(console.error);
+              return;
+            }
             setUser(res.data);
             localStorage.setItem('user_data', JSON.stringify(res.data));
+            if (res.data.username) {
+              localStorage.setItem('last_active_username', res.data.username);
+            }
           }
         })
         .catch((err) => {
@@ -72,6 +88,7 @@ export const AuthProvider = ({ children }) => {
       }
       if (data.user) {
         localStorage.setItem('user_data', JSON.stringify(data.user));
+        localStorage.setItem('last_active_username', data.user.username);
         setUser(data.user);
       }
       return data;
@@ -119,6 +136,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_data');
+    localStorage.removeItem('last_active_username');
     setUser(null);
     setToken(null);
   };
