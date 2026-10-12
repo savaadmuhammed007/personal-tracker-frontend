@@ -21,8 +21,9 @@ export const TodayProgressSection = ({
     tasks = { completed: 0, total: 0 },
   } = stats || {};
 
-  const totalItems = (prayers?.total ?? 5) + (awrad?.total ?? 0) + (habits?.total ?? 0) + (tasks?.total ?? 0);
-  const completedItems = (prayers?.completed ?? 0) + (awrad?.completed ?? 0) + (habits?.completed ?? 0) + (tasks?.completed ?? 0);
+  // Exclude daily awrad from the daily percentage calculation
+  const totalItems = (prayers?.total ?? 5) + (habits?.total ?? 0) + (tasks?.total ?? 0);
+  const completedItems = (prayers?.completed ?? 0) + (habits?.completed ?? 0) + (tasks?.completed ?? 0);
   const overallPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
   const scrollToElement = (elementId) => {
