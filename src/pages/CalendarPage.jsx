@@ -22,6 +22,9 @@ export const CalendarPage = () => {
   const [dayDetails, setDayDetails] = useState(null);
   const [loadingDay, setLoadingDay] = useState(false);
 
+  const dayDetailsRef = React.useRef(null);
+  dayDetailsRef.current = dayDetails;
+
   const fetchMonthData = useCallback(async () => {
     try {
       const res = await calendarApi.getMonth(currentYear, currentMonth);
@@ -32,7 +35,7 @@ export const CalendarPage = () => {
   }, [currentYear, currentMonth]);
 
   const fetchDayDetails = useCallback(async (dateStr) => {
-    if (!dayDetails || dayDetails.date !== dateStr) {
+    if (!dayDetailsRef.current || dayDetailsRef.current.date !== dateStr) {
       setLoadingDay(true);
     }
     try {
@@ -43,7 +46,7 @@ export const CalendarPage = () => {
     } finally {
       setLoadingDay(false);
     }
-  }, [dayDetails]);
+  }, []);
 
   const formatGridTime = (row) => {
     if (row.time && row.time !== '-' && row.time !== '—') {

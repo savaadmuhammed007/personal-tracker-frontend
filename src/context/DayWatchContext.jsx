@@ -21,9 +21,7 @@ export const DayWatchProvider = ({ children }) => {
     const currentLocal = getLocalDateString();
     const prevDate = todayRef.current;
     const isDifferentDay = currentLocal !== prevDate;
-    const now = Date.now();
-    const isStale = now - lastActiveRef.current > 60000; // Inactive for > 1 min
-    lastActiveRef.current = now;
+    lastActiveRef.current = Date.now();
 
     if (isDifferentDay || forceRefresh) {
       if (isDifferentDay) {
@@ -43,8 +41,6 @@ export const DayWatchProvider = ({ children }) => {
       } catch {}
 
       return true;
-    } else if (isStale) {
-      setRevision((r) => r + 1);
     }
     return false;
   }, []);

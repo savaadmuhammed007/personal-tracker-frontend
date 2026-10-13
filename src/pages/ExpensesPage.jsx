@@ -158,9 +158,14 @@ export const ExpensesPage = () => {
     }
   }, [selectedMonth]);
 
+  const allTransactionsRef = useRef(allTransactions);
+  allTransactionsRef.current = allTransactions;
+  const accountsRef = useRef(accounts);
+  accountsRef.current = accounts;
+
   // Fetch Ledger Transactions
   const loadLedgerTransactions = useCallback(async () => {
-    if (allTransactions.length === 0) {
+    if (allTransactionsRef.current.length === 0) {
       setLoading(true);
     }
     try {
@@ -171,7 +176,7 @@ export const ExpensesPage = () => {
       if (ledgerDateFilter) params.date = ledgerDateFilter;
 
       // Ensure accounts list is loaded for account filters and labels
-      if (accounts.length === 0) {
+      if (accountsRef.current.length === 0) {
         expenseApi.getAccounts().then((accRes) => {
           const accList = Array.isArray(accRes.data) ? accRes.data : accRes.data?.results || [];
           setAccounts(accList);
@@ -186,7 +191,7 @@ export const ExpensesPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedAccountFilter, selectedTypeFilter, searchQuery, ledgerDateFilter, accounts.length, allTransactions.length]);
+  }, [selectedAccountFilter, selectedTypeFilter, searchQuery, ledgerDateFilter]);
 
   // Effects
   useEffect(() => {
