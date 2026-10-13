@@ -58,7 +58,7 @@ export const CalendarPage = () => {
         if (!isNaN(dt.getTime())) {
           return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
-      } catch {}
+      } catch { }
     }
     return row.time || '—';
   };
@@ -175,23 +175,21 @@ export const CalendarPage = () => {
               <button
                 key={dayObj.date}
                 onClick={() => setSelectedDate(dayObj.date)}
-                className={`relative min-h-[64px] sm:min-h-[88px] h-full rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5 transition-all duration-200 flex flex-col justify-between text-left border overflow-hidden select-none active:scale-[0.97] cursor-pointer ${
-                  isSelected
+                className={`relative min-h-[64px] sm:min-h-[88px] h-full rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5 transition-all duration-200 flex flex-col justify-between text-left border overflow-hidden select-none active:scale-[0.97] cursor-pointer ${isSelected
                     ? 'ring-2 ring-[#1eb4eb] bg-[#e1f3fd]/90 dark:bg-[#0c4059]/60 border-[#81d7f8] dark:border-[#1eb4eb]/80 shadow-md z-10'
                     : dayObj.is_today
-                    ? 'bg-white dark:bg-[#0b1822] border-[#81d7f8] dark:border-[#088ac1] shadow-xs'
-                    : 'bg-white/70 dark:bg-[#0b1822]/60 hover:bg-white dark:hover:bg-[#0b1822] border-slate-200/80 dark:border-slate-800/80'
-                }`}
+                      ? 'bg-white dark:bg-[#0b1822] border-[#81d7f8] dark:border-[#088ac1] shadow-xs'
+                      : 'bg-white/70 dark:bg-[#0b1822]/60 hover:bg-white dark:hover:bg-[#0b1822] border-slate-200/80 dark:border-slate-800/80'
+                  }`}
               >
                 <div className="flex items-center justify-between w-full min-w-0">
                   <span
-                    className={`text-[10px] sm:text-xs font-bold leading-none ${
-                      dayObj.is_today
+                    className={`text-[10px] sm:text-xs font-bold leading-none ${dayObj.is_today
                         ? 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#088ac1] text-white flex items-center justify-center shrink-0'
                         : isSelected
-                        ? 'text-[#076e9d] dark:text-[#3dc3f3] font-extrabold'
-                        : 'text-slate-800 dark:text-slate-200'
-                    }`}
+                          ? 'text-[#076e9d] dark:text-[#3dc3f3] font-extrabold'
+                          : 'text-slate-800 dark:text-slate-200'
+                      }`}
                   >
                     {dayObj.day}
                   </span>

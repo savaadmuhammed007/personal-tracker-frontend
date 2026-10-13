@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Wallet,
   Smartphone,
@@ -10,8 +10,6 @@ import {
   ArrowUpRight,
   ArrowRightLeft,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   Search,
   Download,
   Trash2,
@@ -88,8 +86,7 @@ export const ExpensesPage = () => {
   const [activeTab, setActiveTab] = useState('daily');
 
   // Selected Date for Daily Report (defaults to today)
-  const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
-  const isSelectedDateToday = selectedDate === getLocalDateString();
+  const [selectedDate] = useState(() => getLocalDateString());
 
   // Selected Month for Analytics (defaults to current month YYYY-MM)
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -159,9 +156,15 @@ export const ExpensesPage = () => {
   }, [selectedMonth]);
 
   const allTransactionsRef = useRef(allTransactions);
-  allTransactionsRef.current = allTransactions;
   const accountsRef = useRef(accounts);
-  accountsRef.current = accounts;
+
+  useEffect(() => {
+    allTransactionsRef.current = allTransactions;
+  }, [allTransactions]);
+
+  useEffect(() => {
+    accountsRef.current = accounts;
+  }, [accounts]);
 
   // Fetch Ledger Transactions
   const loadLedgerTransactions = useCallback(async () => {
@@ -269,20 +272,6 @@ export const ExpensesPage = () => {
       loadAnalyticsData(true);
     }
     setRefreshKey((k) => k + 1);
-  };
-
-  // Date Navigation Helpers
-  const shiftDate = (days) => {
-    const current = new Date(selectedDate);
-    current.setDate(current.getDate() + days);
-    const y = current.getFullYear();
-    const m = String(current.getMonth() + 1).padStart(2, '0');
-    const d = String(current.getDate()).padStart(2, '0');
-    setSelectedDate(`${y}-${m}-${d}`);
-  };
-
-  const jumpToToday = () => {
-    setSelectedDate(getLocalDateString());
   };
 
   // Open Quick Transaction Modal
@@ -757,7 +746,7 @@ export const ExpensesPage = () => {
                   {formatCurrency(dailyReport?.net_flow ?? 0)}
                 </div>
                 <p className="text-[10px] text-slate-400 mt-0.5 truncate">
-                  {(dailyReport?.net_flow || 0) >= 0 ? '✓ Daily Surplus' : '⚠ Daily Deficit'}
+                  {(dailyReport?.net_flow || 0) >= 0 ? '✓ Daily Surplus' : 'Daily Net Outflow'}
                 </p>
               </div>
             </div>
