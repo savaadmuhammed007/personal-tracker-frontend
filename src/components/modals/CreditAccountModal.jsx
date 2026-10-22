@@ -67,18 +67,23 @@ export const CreditAccountModal = ({ isOpen, onClose, account = null, onSaved })
 
       if (account) {
         await expenseApi.updateCreditAccount(account.id, payload);
-        showToast('Credit account updated successfully', 'success');
+        showToast('Account Updated', `Saved changes to ${name.trim()}`);
       } else {
         await expenseApi.createCreditAccount(payload);
-        showToast('New Credit account created', 'success');
+        showToast('Account Created', `Created ${name.trim()} successfully`);
       }
 
       if (onSaved) onSaved();
       onClose();
     } catch (err) {
       console.error('Failed to save credit account:', err);
-      const errMsg = err.response?.data ? JSON.stringify(err.response.data) : 'Failed to save account';
-      showToast(errMsg, 'error');
+      const errMsg =
+        err.response?.data?.name?.[0] ||
+        err.response?.data?.detail ||
+        err.response?.data?.error ||
+        err.message ||
+        'Failed to save account';
+      showToast('Error', errMsg, 'error');
     } finally {
       setSubmitting(false);
     }

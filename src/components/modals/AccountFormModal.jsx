@@ -110,7 +110,8 @@ export const AccountFormModal = ({ isOpen, onClose, account = null, onSaved }) =
       if (onSaved) onSaved();
       onClose();
     } catch (err) {
-      const msg = err.response?.data?.error || err.response?.data?.name?.[0] || 'Failed to save account';
+      console.error('Account save error:', err);
+      const msg = err.response?.data?.error || err.response?.data?.name?.[0] || err.response?.data?.detail || 'Failed to save account';
       showToast('Error', msg, 'error');
     } finally {
       setSubmitting(false);
@@ -142,8 +143,7 @@ export const AccountFormModal = ({ isOpen, onClose, account = null, onSaved }) =
             Cancel
           </button>
           <button
-            type="submit"
-            form="account-form"
+            type="button"
             onClick={handleSubmit}
             disabled={submitting}
             className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#088ac1] to-[#076e9d] hover:from-[#1eb4eb] hover:to-[#088ac1] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#088ac1]/30 transition-all cursor-pointer active:scale-98"

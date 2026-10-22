@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/UIComponents';
-import { ArrowUpRight, ArrowDownLeft, Calendar, FileText, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Calendar, FileText, CheckCircle2, Clock, Plus, Check } from 'lucide-react';
 import { expenseApi } from '../../api/expenseApi';
 import { useNotification } from '../../context/NotificationContext';
 import { getLocalDateString } from '../../utils/dateUtils';
@@ -16,6 +16,7 @@ export const CreditEntryModal = ({
 }) => {
   const { showToast } = useNotification();
   const [entryType, setEntryType] = useState('credit'); // 'credit' (You Gave) or 'debit' (You Took)
+  const [accountList, setAccountList] = useState([]);
   const [accountId, setAccountId] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(getLocalDateString());
@@ -24,8 +25,19 @@ export const CreditEntryModal = ({
   const [isSettled, setIsSettled] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Quick account creation inline
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [newAccountName, setNewAccountName] = useState('');
+  const [creatingAccLoading, setCreatingAccLoading] = useState(false);
+
+  useEffect(() => {
+    setAccountList(accounts || []);
+  }, [accounts]);
+
   useEffect(() => {
     if (isOpen) {
+      setIsCreatingAccount(false);
+      setNewAccountName('');
       if (entry) {
         setEntryType(entry.entry_type || 'credit');
         setAccountId(entry.account ? String(entry.account) : '');
@@ -42,12 +54,12 @@ export const CreditEntryModal = ({
         if (defaultAccountId) {
           setAccountId(String(defaultAccountId));
         } else {
-          const matchingAcc = accounts.find((a) =>
+          const matchingAcc = (accounts || []).find((a) =>
             initialType === 'credit'
               ? a.account_type === 'cash_credit' || a.name.toLowerCase().includes('credit')
               : a.account_type === 'cash_debit' || a.name.toLowerCase().includes('debit')
           );
-          setAccountId(matchingAcc ? String(matchingAcc.id) : (accounts[0] ? String(accounts[0].id) : ''));
+          setAccountId(matchingAcc ? String(matchingAcc.id) : (accounts && accounts[0] ? String(accounts[0].id) : ''));
         }
 
         setAmount('');
@@ -63,7 +75,7 @@ export const CreditEntryModal = ({
   const handleTypeChange = (newType) => {
     setEntryType(newType);
     if (!entry) {
-      const targetAcc = accounts.find((a) =>
+      const targetAcc = accountList.find((a) =>
         newType === 'credit'
           ? a.account_type === 'cash_credit' || a.name.toLowerCase().includes('credit')
           : a.account_type === 'cash_debit' || a.name.toLowerCase().includes('debit')
@@ -74,14 +86,45 @@ export const CreditEntryModal = ({
     }
   };
 
+  // Quick create inline account
+  const handleQuickCreateAccount = async () => {
+    if (!newAccountName.trim()) {
+      showToast('Party Name Required', 'Please enter a name for the party or account', 'error');
+      return;
+    }
+
+    setCreatingAccLoading(true);
+    try {
+      const payload = {
+        name: newAccountName.trim(),
+        account_type: entryType === 'credit' ? 'cash_credit' : 'cash_debit',
+        color: entryType === 'credit' ? '#10b981' : '#f43f5e',
+      };
+      const res = await expenseApi.createCreditAccount(payload);
+      const created = res.data;
+
+      setAccountList((prev) => [...prev, created]);
+      setAccountId(String(created.id));
+      setIsCreatingAccount(false);
+      setNewAccountName('');
+      showToast('Account Created', `Added and selected ${created.name}`);
+    } catch (err) {
+      console.error('Failed to quick create credit account:', err);
+      const errMsg = err.response?.data?.name?.[0] || err.response?.data?.detail || err.message || 'Failed to create account';
+      showToast('Error', errMsg, 'error');
+    } finally {
+      setCreatingAccLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) {
-      showToast('Please enter a valid amount greater than 0', 'error');
+      showToast('Invalid Amount', 'Please enter a valid amount greater than 0', 'error');
       return;
     }
     if (!accountId) {
-      showToast('Please select a Credit Book account', 'error');
+      showToast('Account Required', 'Please select or add a Credit Book account / party', 'error');
       return;
     }
 
@@ -99,14 +142,14 @@ export const CreditEntryModal = ({
 
       if (entry) {
         await expenseApi.updateCreditEntry(entry.id, payload);
-        showToast('Credit entry updated successfully', 'success');
+        showToast('Record Updated', 'Credit entry updated successfully');
       } else {
         await expenseApi.createCreditEntry(payload);
         showToast(
+          'Record Saved',
           entryType === 'credit'
             ? 'Cash Credit recorded (You Gave)'
-            : 'Cash Debit recorded (You Took)',
-          'success'
+            : 'Cash Debit recorded (You Took)'
         );
       }
 
@@ -114,8 +157,13 @@ export const CreditEntryModal = ({
       onClose();
     } catch (err) {
       console.error('Failed to save credit entry:', err);
-      const errMsg = err.response?.data ? JSON.stringify(err.response.data) : 'Failed to save entry';
-      showToast(errMsg, 'error');
+      const errMsg =
+        err.response?.data?.account?.[0] ||
+        err.response?.data?.amount?.[0] ||
+        err.response?.data?.detail ||
+        err.message ||
+        'Failed to save entry';
+      showToast('Error', errMsg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -191,22 +239,65 @@ export const CreditEntryModal = ({
           </p>
         </div>
 
-        {/* Account Selector */}
+        {/* Account / Party Selector with Quick Add */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            Credit Book Account / Party
-          </label>
-          <select
-            value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#088ac1] outline-none text-slate-900 dark:text-white"
-          >
-            {accounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name} ({acc.account_type === 'cash_debit' ? 'Cash Debit' : acc.account_type === 'cash_credit' ? 'Cash Credit' : 'Party'})
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Credit Book Account / Party
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsCreatingAccount((prev) => !prev)}
+              className="text-xs font-bold text-[#088ac1] dark:text-[#3dc3f3] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <Plus className="w-3 h-3" />
+              <span>{isCreatingAccount ? 'Choose Existing' : '+ New Party'}</span>
+            </button>
+          </div>
+
+          {isCreatingAccount ? (
+            <div className="flex items-center gap-2 p-1.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-[#088ac1]/40">
+              <input
+                type="text"
+                autoFocus
+                placeholder="Enter party name (e.g. Zaid, Brother, Vendor)"
+                value={newAccountName}
+                onChange={(e) => setNewAccountName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleQuickCreateAccount();
+                  }
+                }}
+                className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-slate-900 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={handleQuickCreateAccount}
+                disabled={creatingAccLoading}
+                className="px-3 py-1.5 text-xs font-bold text-white bg-[#088ac1] hover:bg-[#0779ab] rounded-lg shadow-xs flex items-center gap-1 cursor-pointer"
+              >
+                <Check className="w-3 h-3" />
+                <span>{creatingAccLoading ? 'Adding...' : 'Add & Select'}</span>
+              </button>
+            </div>
+          ) : (
+            <select
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#088ac1] outline-none text-slate-900 dark:text-white"
+            >
+              {accountList.length === 0 ? (
+                <option value="">No accounts yet - click "+ New Party" to add</option>
+              ) : (
+                accountList.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} ({acc.account_type === 'cash_debit' ? 'Cash Debit' : acc.account_type === 'cash_credit' ? 'Cash Credit' : 'Party'})
+                  </option>
+                ))
+              )}
+            </select>
+          )}
         </div>
 
         {/* Dates (Record Date and Due Date) */}
