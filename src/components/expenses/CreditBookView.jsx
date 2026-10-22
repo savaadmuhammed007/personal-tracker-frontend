@@ -19,11 +19,13 @@ import {
   UserCheck,
   Check,
   RotateCcw,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { expenseApi } from '../../api/expenseApi';
 import { useNotification } from '../../context/NotificationContext';
 import { CreditEntryModal } from '../modals/CreditEntryModal';
 import { CreditAccountModal } from '../modals/CreditAccountModal';
+import { ManageCreditAccountsModal } from '../modals/ManageCreditAccountsModal';
 
 export const CreditBookView = () => {
   const { showToast } = useNotification();
@@ -47,6 +49,8 @@ export const CreditBookView = () => {
 
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
+
+  const [isManageAccountsOpen, setIsManageAccountsOpen] = useState(false);
 
   // Fetch all Credit Book data
   const loadData = useCallback(async () => {
@@ -208,6 +212,14 @@ export const CreditBookView = () => {
           </button>
           <button
             type="button"
+            onClick={() => setIsManageAccountsOpen(true)}
+            className="px-3 py-2 text-xs font-bold text-slate-200 hover:text-white bg-white/10 hover:bg-white/15 rounded-xl border border-white/10 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-[#3dc3f3]" />
+            <span>Manage Accounts</span>
+          </button>
+          <button
+            type="button"
             onClick={() => {
               setEditingAccount(null);
               setIsAccountModalOpen(true);
@@ -305,17 +317,28 @@ export const CreditBookView = () => {
             <Building2 className="w-3.5 h-3.5 text-[#088ac1] dark:text-[#3dc3f3]" />
             Credit Book Accounts ({accounts.length})
           </span>
-          <button
-            type="button"
-            onClick={() => {
-              setEditingAccount(null);
-              setIsAccountModalOpen(true);
-            }}
-            className="text-xs font-semibold text-[#088ac1] dark:text-[#3dc3f3] hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <PlusCircle className="w-3.5 h-3.5" />
-            Add Account / Party
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setIsManageAccountsOpen(true)}
+              className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-[#088ac1] dark:hover:text-[#3dc3f3] flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#088ac1] dark:text-[#3dc3f3]" />
+              <span>Manage Accounts</span>
+            </button>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingAccount(null);
+                setIsAccountModalOpen(true);
+              }}
+              className="text-xs font-semibold text-[#088ac1] dark:text-[#3dc3f3] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Add Party</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
@@ -347,34 +370,52 @@ export const CreditBookView = () => {
             const isSelected = String(selectedAccountId) === String(acc.id);
             const net = acc.net_balance ?? 0;
             return (
-              <button
+              <div
                 key={acc.id}
-                type="button"
-                onClick={() => setSelectedAccountId(isSelected ? 'all' : String(acc.id))}
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 border ${
+                className={`inline-flex items-center rounded-xl border transition-all whitespace-nowrap text-xs font-bold ${
                   isSelected
                     ? 'bg-white dark:bg-slate-700 text-[#088ac1] dark:text-[#3dc3f3] border-[#088ac1] shadow-xs ring-2 ring-[#088ac1]/20'
                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
                 }`}
               >
-                <span
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: acc.color || '#088ac1' }}
-                />
-                <span>{acc.name}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    net > 0
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                      : net < 0
-                      ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
-                  }`}
+                <button
+                  type="button"
+                  onClick={() => setSelectedAccountId(isSelected ? 'all' : String(acc.id))}
+                  className="px-3 py-2 flex items-center gap-2 cursor-pointer"
                 >
-                  {net >= 0 ? '+' : '-'}
-                  {formatCurrency(net)}
-                </span>
-              </button>
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: acc.color || '#088ac1' }}
+                  />
+                  <span>{acc.name}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      net > 0
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                        : net < 0
+                        ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                    }`}
+                  >
+                    {net >= 0 ? '+' : '-'}
+                    {formatCurrency(net)}
+                  </span>
+                </button>
+                {isSelected && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingAccount(acc);
+                      setIsAccountModalOpen(true);
+                    }}
+                    className="pr-2.5 pl-1 py-2 text-slate-400 hover:text-[#088ac1] dark:hover:text-[#3dc3f3] transition-colors cursor-pointer"
+                    title={`Edit ${acc.name}`}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
@@ -723,6 +764,27 @@ export const CreditBookView = () => {
         }}
         account={editingAccount}
         onSaved={loadData}
+      />
+
+      {/* Manage Credit Accounts / Parties Modal */}
+      <ManageCreditAccountsModal
+        isOpen={isManageAccountsOpen}
+        onClose={() => setIsManageAccountsOpen(false)}
+        accounts={accounts}
+        onEditAccount={(acc) => {
+          setIsManageAccountsOpen(false);
+          setEditingAccount(acc);
+          setIsAccountModalOpen(true);
+        }}
+        onAddNewAccount={() => {
+          setIsManageAccountsOpen(false);
+          setEditingAccount(null);
+          setIsAccountModalOpen(true);
+        }}
+        onSelectAccount={(accId) => {
+          setSelectedAccountId(accId);
+        }}
+        onAccountDeleted={loadData}
       />
     </div>
   );

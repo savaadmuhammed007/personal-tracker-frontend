@@ -479,7 +479,7 @@ export const ExpensesPage = () => {
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            Accounts ({accounts.length})
+            Manage Accounts ({accounts.length})
           </button>
           <button
             type="button"
@@ -982,9 +982,10 @@ export const ExpensesPage = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab('accounts')}
-                    className="text-[10px] font-bold text-[#088ac1] dark:text-[#3dc3f3] hover:underline cursor-pointer"
+                    className="text-[11px] font-bold text-[#088ac1] dark:text-[#3dc3f3] hover:underline cursor-pointer flex items-center gap-1"
                   >
-                    Manage
+                    <span>Manage Accounts</span>
+                    <span>➔</span>
                   </button>
                 </div>
 
@@ -1585,6 +1586,18 @@ export const ExpensesPage = () => {
               >
                 <ArrowRightLeft className="w-4 h-4 stroke-[2.5]" />
                 <span>⇄ Transfer</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFabMenuOpen(false);
+                  setActiveTab('accounts');
+                }}
+                className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-slate-800/30 transition-all cursor-pointer whitespace-nowrap active:scale-95"
+              >
+                <Building2 className="w-4 h-4 stroke-[2.5] text-cyan-300" />
+                <span>Manage Accounts</span>
               </button>
             </div>
           )}
