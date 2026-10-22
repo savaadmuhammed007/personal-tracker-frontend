@@ -176,7 +176,10 @@ export const ExpensesPage = () => {
     try {
       const params = {};
       if (selectedAccountFilter !== 'all') params.account = selectedAccountFilter;
-      if (selectedTypeFilter !== 'all') params.type = selectedTypeFilter;
+      if (selectedTypeFilter !== 'all') {
+        params.transaction_type = selectedTypeFilter;
+        params.type = selectedTypeFilter;
+      }
       if (searchQuery.trim()) params.search = searchQuery.trim();
       if (ledgerDateFilter) params.date = ledgerDateFilter;
 
@@ -341,11 +344,14 @@ export const ExpensesPage = () => {
   const displayedDailyTransactions = useMemo(() => {
     if (!dailyReport?.transactions) return [];
     if (selectedAccountFilter === 'all') return dailyReport.transactions;
-    return dailyReport.transactions.filter(
-      (tx) =>
-        String(tx.account) === String(selectedAccountFilter) ||
-        String(tx.to_account) === String(selectedAccountFilter)
-    );
+    return dailyReport.transactions.filter((tx) => {
+      const txAcc = tx.account !== undefined && tx.account !== null ? tx.account : tx.account_id;
+      const txToAcc = tx.to_account !== undefined && tx.to_account !== null ? tx.to_account : tx.to_account_id;
+      return (
+        String(txAcc) === String(selectedAccountFilter) ||
+        (txToAcc !== undefined && txToAcc !== null && String(txToAcc) === String(selectedAccountFilter))
+      );
+    });
   }, [dailyReport, selectedAccountFilter]);
 
   // Total Net Worth across all active accounts
@@ -812,7 +818,7 @@ export const ExpensesPage = () => {
                       <button
                         key={acc.id}
                         type="button"
-                        onClick={() => setSelectedAccountFilter(String(acc.id))}
+                        onClick={() => setSelectedAccountFilter(selectedAccountFilter === String(acc.id) ? 'all' : String(acc.id))}
                         className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-colors cursor-pointer truncate max-w-[90px] ${
                           selectedAccountFilter === String(acc.id)
                             ? 'bg-[#088ac1] text-white shadow-xs'
@@ -997,9 +1003,26 @@ export const ExpensesPage = () => {
                       className="p-2.5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 space-y-1 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer transition-colors"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                          {acc.name}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedAccountFilter(selectedAccountFilter === String(acc.id) ? 'all' : String(acc.id));
+                          }}
+                          className={`text-xs font-bold text-left transition-colors flex items-center gap-1.5 cursor-pointer ${
+                            selectedAccountFilter === String(acc.id)
+                              ? 'text-[#088ac1] dark:text-[#3dc3f3] underline'
+                              : 'text-slate-800 dark:text-slate-200 hover:text-[#088ac1]'
+                          }`}
+                          title="Click to filter today's feed to this account"
+                        >
+                          <span>{acc.name}</span>
+                          {selectedAccountFilter === String(acc.id) && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[#088ac1] text-white font-bold no-underline">
+                              Active
+                            </span>
+                          )}
+                        </button>
                         <span className="text-xs font-bold font-mono text-slate-900 dark:text-white">
                           {formatCurrency(acc.closing_balance)}
                         </span>

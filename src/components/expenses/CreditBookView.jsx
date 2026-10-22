@@ -116,12 +116,45 @@ export const CreditBookView = () => {
     }
   };
 
+  // Selected Account Object
+  const selectedAccount = useMemo(() => {
+    if (selectedAccountId === 'all') return null;
+    return (accounts || []).find((a) => String(a.id) === String(selectedAccountId)) || null;
+  }, [accounts, selectedAccountId]);
+
+  // Dynamic KPI Summary (Filtered by account if selected)
+  const displaySummary = useMemo(() => {
+    if (selectedAccountId === 'all' || !selectedAccount) {
+      return {
+        totalToGet: summary?.total_to_get || 0,
+        totalToGive: summary?.total_to_give || 0,
+        netBalance: summary?.net_balance || 0,
+        pendingCount: summary?.pending_count || 0,
+        overdueCount: summary?.overdue_count || 0,
+        settledCount: summary?.settled_count || 0,
+        label: null,
+      };
+    }
+    return {
+      totalToGet: selectedAccount.total_credit || 0,
+      totalToGive: selectedAccount.total_debit || 0,
+      netBalance: selectedAccount.net_balance || 0,
+      pendingCount: selectedAccount.pending_entries_count || 0,
+      overdueCount: 0,
+      settledCount: selectedAccount.settled_entries_count || 0,
+      label: selectedAccount.name,
+    };
+  }, [selectedAccountId, selectedAccount, summary]);
+
   // Filtered Entries
   const filteredEntries = useMemo(() => {
     return entries.filter((item) => {
-      // Account filter
-      if (selectedAccountId !== 'all' && String(item.account) !== String(selectedAccountId)) {
-        return false;
+      // Account filter (robust check for both account and account_id)
+      if (selectedAccountId !== 'all') {
+        const itemAcc = item.account !== undefined && item.account !== null ? item.account : item.account_id;
+        if (String(itemAcc) !== String(selectedAccountId)) {
+          return false;
+        }
       }
       // Status filter
       if (statusFilter === 'pending' && item.is_settled) return false;
@@ -242,15 +275,15 @@ export const CreditBookView = () => {
               You'll Get (Cash Credit)
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              Receivables
+              {displaySummary.label ? `${displaySummary.label}` : 'Receivables'}
             </span>
           </div>
           <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-            +{formatCurrency(summary?.total_to_get)}
+            +{formatCurrency(displaySummary.totalToGet)}
           </div>
           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700/50 pt-2">
-            <span>Money lent / credit extended</span>
-            <span className="font-semibold">{summary?.pending_count || 0} active records</span>
+            <span>{displaySummary.label ? `Receivables from ${displaySummary.label}` : 'Money lent / credit extended'}</span>
+            <span className="font-semibold">{displaySummary.pendingCount} active records</span>
           </div>
         </div>
 
@@ -262,15 +295,15 @@ export const CreditBookView = () => {
               You'll Give (Cash Debit)
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
-              Payables
+              {displaySummary.label ? `${displaySummary.label}` : 'Payables'}
             </span>
           </div>
           <div className="text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight">
-            -{formatCurrency(summary?.total_to_give)}
+            -{formatCurrency(displaySummary.totalToGive)}
           </div>
           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700/50 pt-2">
-            <span>Money borrowed / owed</span>
-            <span className="font-semibold">{summary?.overdue_count || 0} overdue</span>
+            <span>{displaySummary.label ? `Payables to ${displaySummary.label}` : 'Money borrowed / owed'}</span>
+            <span className="font-semibold">{displaySummary.overdueCount} overdue</span>
           </div>
         </div>
 
@@ -283,28 +316,28 @@ export const CreditBookView = () => {
             </span>
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                (summary?.net_balance || 0) >= 0
+                (displaySummary.netBalance || 0) >= 0
                   ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                   : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
               }`}
             >
-              {(summary?.net_balance || 0) >= 0 ? 'Net Receivable' : 'Net Payable'}
+              {(displaySummary.netBalance || 0) >= 0 ? 'Net Receivable' : 'Net Payable'}
             </span>
           </div>
           <div
             className={`text-2xl font-black tracking-tight ${
-              (summary?.net_balance || 0) >= 0
+              (displaySummary.netBalance || 0) >= 0
                 ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-rose-600 dark:text-rose-400'
             }`}
           >
-            {(summary?.net_balance || 0) >= 0 ? '+' : '-'}
-            {formatCurrency(summary?.net_balance)}
+            {(displaySummary.netBalance || 0) >= 0 ? '+' : '-'}
+            {formatCurrency(displaySummary.netBalance)}
           </div>
           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700/50 pt-2">
-            <span>{accounts.length} accounts tracking</span>
+            <span>{displaySummary.label ? `Filtered to ${displaySummary.label}` : `${accounts.length} accounts tracking`}</span>
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-              {summary?.settled_count || 0} cleared
+              {displaySummary.settledCount} cleared
             </span>
           </div>
         </div>
@@ -517,6 +550,31 @@ export const CreditBookView = () => {
 
       {/* Entries List / Ledger */}
       <div className="space-y-3">
+        {/* Active Account Filter Banner */}
+        {selectedAccountId !== 'all' && selectedAccount && (
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-[#088ac1]/10 border border-[#088ac1]/30 text-xs">
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: selectedAccount.color || '#088ac1' }}
+              />
+              <span className="font-bold text-slate-900 dark:text-white">
+                Filtered by: <span className="text-[#088ac1] dark:text-[#3dc3f3]">{selectedAccount.name}</span>
+              </span>
+              <span className="text-slate-500 dark:text-slate-400">
+                ({filteredEntries.length} {statusFilter === 'all' ? 'total' : statusFilter} records)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedAccountId('all')}
+              className="text-xs font-bold text-[#088ac1] dark:text-[#3dc3f3] hover:underline cursor-pointer"
+            >
+              Show All Accounts ✕
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 font-semibold">
           <span>Showing {filteredEntries.length} records</span>
           {statusFilter === 'pending' && (
@@ -537,10 +595,34 @@ export const CreditBookView = () => {
               <BookOpen className="w-6 h-6" />
             </div>
             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
-              No Credit Book records found
+              {selectedAccountId !== 'all' && selectedAccount
+                ? `No ${statusFilter === 'all' ? '' : statusFilter + ' '}records for ${selectedAccount.name}`
+                : 'No Credit Book records found'}
             </h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Start tracking cash debits and credits. Entries here stay isolated from your daily wallet expenses.
+              {selectedAccountId !== 'all' && statusFilter === 'pending' && (selectedAccount?.settled_entries_count || 0) > 0 ? (
+                <span>
+                  This party has {selectedAccount.settled_entries_count} settled record(s). Switch status filter to{' '}
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter('all')}
+                    className="text-[#088ac1] dark:text-[#3dc3f3] font-bold underline"
+                  >
+                    "All"
+                  </button>{' '}
+                  or{' '}
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter('settled')}
+                    className="text-[#088ac1] dark:text-[#3dc3f3] font-bold underline"
+                  >
+                    "Settled"
+                  </button>{' '}
+                  to view them.
+                </span>
+              ) : (
+                'Start tracking cash debits and credits. Entries here stay isolated from your daily wallet expenses.'
+              )}
             </p>
             <div className="flex items-center justify-center gap-2 pt-2">
               <button

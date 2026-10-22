@@ -40,7 +40,8 @@ export const CreditEntryModal = ({
       setNewAccountName('');
       if (entry) {
         setEntryType(entry.entry_type || 'credit');
-        setAccountId(entry.account ? String(entry.account) : '');
+        const accId = entry.account ?? entry.account_id;
+        setAccountId(accId ? String(accId) : '');
         setAmount(String(entry.amount || ''));
         setDate(entry.date || getLocalDateString());
         setDueDate(entry.due_date || '');
