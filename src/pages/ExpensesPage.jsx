@@ -41,6 +41,7 @@ import {
   Star,
   Layers,
   ArrowRight,
+  BookOpen,
 } from 'lucide-react';
 import { expenseApi } from '../api/expenseApi';
 import { useNotification } from '../context/NotificationContext';
@@ -51,6 +52,7 @@ import { OpeningBalanceModal } from '../components/modals/OpeningBalanceModal';
 import { AccountFormModal } from '../components/modals/AccountFormModal';
 import { AccountStatementModal } from '../components/modals/AccountStatementModal';
 import { ExpenseAnalyticsView } from '../components/expenses/ExpenseAnalyticsView';
+import { CreditBookView } from '../components/expenses/CreditBookView';
 
 const ICON_MAP = {
   Utensils,
@@ -503,11 +505,23 @@ export const ExpensesPage = () => {
             <FileSpreadsheet className="w-3.5 h-3.5" />
             Ledger
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('credit_book')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
+              activeTab === 'credit_book'
+                ? 'bg-white dark:bg-slate-700 text-[#088ac1] dark:text-[#3dc3f3] shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            Credit Book
+          </button>
         </div>
       </div>
 
       {/* Hero Liquidity Carousel & Multi-Segment Distribution Bar */}
-      {activeTab !== 'accounts' && (
+      {activeTab !== 'accounts' && activeTab !== 'credit_book' && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1521,8 +1535,12 @@ export const ExpensesPage = () => {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) for Adding Transactions */}
-      <div className="fixed bottom-20 right-5 sm:bottom-8 sm:right-8 z-40">
+      {/* TAB 5: CREDIT BOOK SYSTEM (ISOLATED DEBITS & CREDITS LEDGER) */}
+      {activeTab === 'credit_book' && <CreditBookView />}
+
+      {/* Floating Action Button (FAB) for Adding Transactions (hidden in Credit Book) */}
+      {activeTab !== 'credit_book' && (
+        <div className="fixed bottom-20 right-5 sm:bottom-8 sm:right-8 z-40">
         {isFabMenuOpen && (
           <div
             className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[1px]"
@@ -1585,6 +1603,7 @@ export const ExpensesPage = () => {
           </button>
         </div>
       </div>
+      )}
 
       {/* Modals */}
       <TransactionModal
