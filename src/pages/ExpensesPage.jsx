@@ -38,6 +38,7 @@ import {
   Gift,
   PlusCircle,
   FileSpreadsheet,
+  FileText,
   Star,
   Layers,
   ArrowRight,
@@ -53,6 +54,7 @@ import { AccountFormModal } from '../components/modals/AccountFormModal';
 import { AccountStatementModal } from '../components/modals/AccountStatementModal';
 import { ExpenseAnalyticsView } from '../components/expenses/ExpenseAnalyticsView';
 import { CreditBookView } from '../components/expenses/CreditBookView';
+import { generateLedgerPdf } from '../utils/ledgerPdfGenerator';
 
 const ICON_MAP = {
   Utensils,
@@ -149,7 +151,20 @@ export const ExpensesPage = () => {
     if (!isSilent) setLoading(true);
     try {
       const res = await expenseApi.getSummaryAnalytics({ month: selectedMonth });
-      setAnalyticsData(res.data);
+      const data = res.data;
+      setAnalyticsData(data);
+
+      // Auto-switch to most recent month with activity if current month has 0 data and an active month exists
+      if (
+        data &&
+        Array.isArray(data.available_months) &&
+        data.available_months.length > 0 &&
+        !data.available_months.includes(selectedMonth) &&
+        Number(data.monthly_income || 0) === 0 &&
+        Number(data.monthly_expense || 0) === 0
+      ) {
+        setSelectedMonth(data.available_months[0]);
+      }
     } catch (err) {
       console.error('Failed to load analytics:', err);
     } finally {
@@ -206,7 +221,9 @@ export const ExpensesPage = () => {
     if (activeTab === 'daily' || activeTab === 'accounts') {
       loadDailyData();
     }
-  }, [activeTab, loadDailyData, refreshKey]);
+    // Eagerly preload analytics in background so Tab 3 is always ready
+    loadAnalyticsData(true);
+  }, [activeTab, loadDailyData, loadAnalyticsData, refreshKey]);
 
   useEffect(() => {
     if (activeTab === 'analytics') {
@@ -439,6 +456,52 @@ export const ExpensesPage = () => {
     link.click();
     document.body.removeChild(link);
     showToast('Exported', 'CSV report downloaded');
+  };
+
+  // Export Reconciled Multi-Account Ledger PDF with Running Balances
+  const handleExportPDF = async () => {
+    let list = allTransactions;
+    if (!list || list.length === 0) {
+      try {
+        setLoading(true);
+        const res = await expenseApi.getTransactions({});
+        list = Array.isArray(res.data) ? res.data : res.data?.results || [];
+        setAllTransactions(list);
+      } catch (err) {
+        console.error('Failed to load transactions for PDF:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if ((!list || list.length === 0) && accounts.length === 0) {
+      showToast('No Data', 'No accounts or transactions found to generate PDF', 'info');
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+      const userName = userData.first_name
+        ? `${userData.first_name} ${userData.last_name || ''}`.trim()
+        : (userData.username || 'Account Holder');
+
+      generateLedgerPdf({
+        accounts,
+        transactions: list,
+        filters: {
+          account: selectedAccountFilter,
+          type: selectedTypeFilter,
+          date: ledgerDateFilter,
+          search: searchQuery,
+        },
+        userName,
+      });
+
+      showToast('PDF Exported', '✓ Official ledger statement PDF with per-row balances downloaded.');
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      showToast('Export Error', 'Failed to generate PDF document', 'error');
+    }
   };
 
   return (
@@ -1322,6 +1385,7 @@ export const ExpensesPage = () => {
           selectedMonth={selectedMonth}
           setSelectedMonth={setSelectedMonth}
           loading={loading}
+          onRefresh={() => loadAnalyticsData(false)}
           onAddTransaction={(type) => {
             setEditingTransaction(null);
             setTxModalType(type || 'expense');
@@ -1393,6 +1457,18 @@ export const ExpensesPage = () => {
                 ))}
               </select>
 
+              {/* Export PDF Button */}
+              <button
+                type="button"
+                onClick={handleExportPDF}
+                className="px-3 py-2 rounded-xl bg-gradient-to-r from-[#088ac1] to-[#076e9d] hover:from-[#0999d7] hover:to-[#088ac1] text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 shrink-0"
+                title="Download Official Multi-Account Ledger PDF with Running Balances on each row"
+              >
+                <FileText className="w-3.5 h-3.5 text-cyan-200" />
+                <span>Export PDF</span>
+              </button>
+
+              {/* Export CSV Button */}
               <button
                 type="button"
                 onClick={handleExportCSV}

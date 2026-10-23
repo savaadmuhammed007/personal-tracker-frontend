@@ -5,21 +5,19 @@ import axios from 'axios';
 // 2. In dev mode, use '/api' to leverage Vite's proxy (works on both localhost and mobile LAN)
 // 3. In production, use VITE_API_URL or fallback to Render cloud
 export const getActiveBackendUrl = () => {
-  if (import.meta.env.DEV) {
-    return '/api';
-  }
   const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('active_backend_target') : null;
   if (saved === 'cloud') {
     return 'https://personal-tracker-backend-mr9z.onrender.com/api';
   }
-  if (saved === 'local') {
-    return 'http://127.0.0.1:8000/api';
+  if (saved === 'local' || import.meta.env.DEV) {
+    return '/api';
   }
   const prodUrl = import.meta.env.VITE_API_URL || 'https://personal-tracker-backend-mr9z.onrender.com';
   return prodUrl.endsWith('/api') ? prodUrl : `${prodUrl.replace(/\/$/, '')}/api`;
 };
 
 export const API_URL = getActiveBackendUrl();
+export const CLOUD_FALLBACK_URL = 'https://personal-tracker-backend-mr9z.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -141,6 +139,22 @@ api.interceptors.response.use(
           window.location.href = '/login';
         }
       }
+    }
+
+    // Auto-fallback: if request to local /api failed with 404 or network error, retry against live cloud backend
+    if (
+      !originalRequest._cloudFallback &&
+      (API_URL === '/api' || API_URL.includes('127.0.0.1') || API_URL.includes('localhost')) &&
+      (error.response?.status === 404 || error.response?.status === 502 || error.response?.status === 503 || error.code === 'ERR_NETWORK' || !error.response)
+    ) {
+      originalRequest._cloudFallback = true;
+      originalRequest.baseURL = CLOUD_FALLBACK_URL;
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+      }
+      return axios(originalRequest);
     }
 
     return Promise.reject(error);

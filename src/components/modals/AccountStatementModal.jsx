@@ -14,10 +14,12 @@ import {
   ArrowRightLeft,
   Landmark,
   Download,
+  FileText,
 } from 'lucide-react';
 import { formatCurrency } from '../../data/expenseCategories';
 import { expenseApi } from '../../api/expenseApi';
 import { useNotification } from '../../context/NotificationContext';
+import { generateLedgerPdf } from '../../utils/ledgerPdfGenerator';
 
 export const AccountStatementModal = ({
   isOpen,
@@ -112,6 +114,31 @@ export const AccountStatementModal = ({
     link.click();
     document.body.removeChild(link);
     showToast('Exported', 'Account CSV statement downloaded');
+  };
+
+  const handleExportStatementPDF = () => {
+    if (!account) return;
+    try {
+      const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+      const userName = userData.first_name
+        ? `${userData.first_name} ${userData.last_name || ''}`.trim()
+        : (userData.username || 'Account Holder');
+
+      generateLedgerPdf({
+        accounts: [activeAcc],
+        transactions,
+        filters: {
+          account: String(activeAcc.id),
+          date: startDate && endDate ? `${startDate} to ${endDate}` : startDate || endDate || null,
+        },
+        userName,
+      });
+
+      showToast('PDF Exported', `✓ ${activeAcc.name} statement PDF with per-row balances downloaded.`);
+    } catch (err) {
+      console.error('Failed to generate account PDF:', err);
+      showToast('Error', 'Failed to generate PDF statement', 'error');
+    }
   };
 
   if (!account) return null;
@@ -255,8 +282,18 @@ export const AccountStatementModal = ({
 
           <button
             type="button"
+            onClick={handleExportStatementPDF}
+            className="py-2 px-3 rounded-xl bg-gradient-to-r from-[#088ac1] to-[#076e9d] hover:from-[#0999d7] hover:to-[#088ac1] text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ml-auto active:scale-95"
+            title="Download Official PDF Statement with Running Balances"
+          >
+            <FileText className="w-3.5 h-3.5 text-cyan-200" />
+            PDF Statement
+          </button>
+
+          <button
+            type="button"
             onClick={handleExportStatementCSV}
-            className="py-2 px-3 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer ml-auto"
+            className="py-2 px-3 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Download CSV Statement"
           >
             <Download className="w-3.5 h-3.5" />
