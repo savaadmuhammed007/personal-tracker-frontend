@@ -28,10 +28,11 @@ export const MissedPage = () => {
       setMissedData(res.data);
     } catch (e) {
       console.error('Failed to load missed activities:', e);
+      showToast('Error', 'Failed to load missed activities', 'error');
     } finally {
       setLoading(false);
     }
-  }, [days, category]);
+  }, [days, category, showToast]);
 
   useEffect(() => {
     fetchMissed();
@@ -46,7 +47,7 @@ export const MissedPage = () => {
     };
   }, [fetchMissed, todayDate, revision]);
 
-  const handleMakeUpPrayer = async (prayerName, date) => {
+  const handleMakeUpPrayer = async (prayerName, date, title) => {
     try {
       await prayerApi.togglePrayer({
         prayer_name: prayerName,
@@ -54,12 +55,13 @@ export const MissedPage = () => {
         status: 'completed',
         notes: 'Made up (Qada/Late)',
       });
-      showToast('Prayer Logged', `✓ ${prayerName} for ${date} marked completed.`);
+      showToast('Prayer Logged', `✓ ${title || prayerName} for ${date} marked completed.`);
       invalidateDailyActivityCaches(date);
       if (triggerRevision) triggerRevision();
-      fetchMissed();
+      await fetchMissed();
     } catch (e) {
       console.error('Failed to make up prayer:', e);
+      showToast('Error', 'Failed to update prayer status', 'error');
     }
   };
 
@@ -69,11 +71,17 @@ export const MissedPage = () => {
       showToast('Habit Logged', `✓ ${name} for ${date} marked completed.`);
       invalidateDailyActivityCaches(date);
       if (triggerRevision) triggerRevision();
-      fetchMissed();
+      await fetchMissed();
     } catch (e) {
       console.error('Failed to make up habit:', e);
+      showToast('Error', 'Failed to log habit completion', 'error');
     }
   };
+
+  // Safely extract days grouped array whether response is wrapped or a direct array
+  const daysGrouped = Array.isArray(missedData)
+    ? missedData
+    : (Array.isArray(missedData?.days_grouped) ? missedData.days_grouped : []);
 
   return (
     <div className="space-y-6">
@@ -148,7 +156,7 @@ export const MissedPage = () => {
       {/* Missed Groups List */}
       {loading ? (
         <div className="py-16 text-center text-xs text-slate-400">Reviewing records...</div>
-      ) : !missedData || !Array.isArray(missedData.days_grouped) || missedData.days_grouped.length === 0 ? (
+      ) : daysGrouped.length === 0 ? (
         <div className="py-16 text-center text-sm text-slate-400 bg-[#e1f3fd]/50 dark:bg-[#0f4d6b]/20 rounded-3xl border border-[#bce8fb] dark:border-[#0b5d81]/50 p-8">
           <div className="w-12 h-12 rounded-full bg-[#bce8fb]/60 dark:bg-[#0f4d6b]/60 text-[#076e9d] dark:text-[#3dc3f3] flex items-center justify-center mx-auto mb-3">
             <CheckCircle2 className="w-6 h-6" />
@@ -160,7 +168,7 @@ export const MissedPage = () => {
         </div>
       ) : (
         <div className="space-y-4 sm:space-y-6">
-          {(missedData.days_grouped || []).map((group) => (
+          {daysGrouped.map((group) => (
             <div
               key={group.date}
               className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-soft space-y-3"
@@ -168,15 +176,15 @@ export const MissedPage = () => {
               <div className="flex items-center justify-between pb-3 border-b border-islamic-border-light/60 dark:border-islamic-border-dark/60">
                 <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Calendar className="w-3.5 h-3.5 text-islamic-primary-600" />
-                  {group.date_formatted}
+                  {group.date_formatted || group.date}
                 </span>
                 <span className="text-[11px] font-semibold text-slate-400">
-                  {group.items.length} uncompleted
+                  {group.items?.length ?? group.count ?? 0} uncompleted
                 </span>
               </div>
 
               <div className="space-y-2">
-                {group.items.map((item) => (
+                {(group.items || []).map((item) => (
                   <div
                     key={item.id}
                     className="p-3 sm:p-3.5 rounded-2xl bg-islamic-subtle-light/50 dark:bg-islamic-subtle-dark/50 border border-islamic-border-light/60 dark:border-islamic-border-dark/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3"
@@ -186,7 +194,7 @@ export const MissedPage = () => {
                         {item.title}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {item.category} • {item.scheduled_time ? `Scheduled: ${item.scheduled_time}` : 'Daily Routine'}
+                        {item.category} • {item.scheduled_time && item.scheduled_time !== '-' ? `Scheduled: ${item.scheduled_time}` : 'Daily Routine'}
                       </p>
                     </div>
 
@@ -195,7 +203,7 @@ export const MissedPage = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleMakeUpPrayer(item.prayer_name, group.date)}
+                          onClick={() => handleMakeUpPrayer(item.prayer_name, group.date, item.title)}
                           className="w-full sm:w-auto text-xs"
                         >
                           Make Up / Mark Done
