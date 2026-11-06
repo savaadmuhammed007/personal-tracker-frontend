@@ -55,6 +55,7 @@ import { AccountStatementModal } from '../components/modals/AccountStatementModa
 import { ExpenseAnalyticsView } from '../components/expenses/ExpenseAnalyticsView';
 import { MonthlyReportsSection } from '../components/expenses/MonthlyReportsSection';
 import { CreditBookView } from '../components/expenses/CreditBookView';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { generateLedgerPdf } from '../utils/ledgerPdfGenerator';
 
 const ICON_MAP = {
@@ -1393,37 +1394,81 @@ export const ExpensesPage = () => {
 
       {/* TAB 3: MONTHLY ANALYTICS & CHARTS */}
       {activeTab === 'analytics' && (
-        <ExpenseAnalyticsView
-          analyticsData={analyticsData}
-          selectedMonth={selectedMonth}
-          setSelectedMonth={setSelectedMonth}
-          accounts={accounts}
-          loading={loading}
-          onRefresh={() => loadAnalyticsData(false)}
-          onAddTransaction={(type) => {
-            setEditingTransaction(null);
-            setTxModalType(type || 'expense');
-            setIsTxModalOpen(true);
-          }}
-          onNavigateToReports={() => setActiveTab('monthly_reports')}
-        />
+        <ErrorBoundary
+          fallback={
+            <div className="glass-card rounded-3xl p-6 sm:p-8 text-center space-y-4 border border-rose-200 dark:border-rose-900/40">
+              <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white">Unable to display Analytics View</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">There was a temporary rendering issue. Please try refreshing.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  loadAnalyticsData(false);
+                  window.location.reload();
+                }}
+                className="px-4 py-2 rounded-2xl bg-[#088ac1] hover:bg-[#076e9d] text-white text-xs font-bold transition-all cursor-pointer"
+              >
+                Reload Analytics
+              </button>
+            </div>
+          }
+        >
+          <ExpenseAnalyticsView
+            analyticsData={analyticsData}
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+            accounts={accounts}
+            loading={loading}
+            onRefresh={() => loadAnalyticsData(false)}
+            onAddTransaction={(type) => {
+              setEditingTransaction(null);
+              setTxModalType(type || 'expense');
+              setIsTxModalOpen(true);
+            }}
+            onNavigateToReports={() => setActiveTab('monthly_reports')}
+          />
+        </ErrorBoundary>
       )}
 
       {/* TAB: MONTHLY BASE REPORTS & CATEGORY ANALYTICS */}
       {activeTab === 'monthly_reports' && (
-        <MonthlyReportsSection
-          analyticsData={analyticsData}
-          selectedMonth={selectedMonth}
-          setSelectedMonth={setSelectedMonth}
-          accounts={accounts}
-          loading={loading}
-          onRefresh={() => loadAnalyticsData(false)}
-          onAddTransaction={(type) => {
-            setEditingTransaction(null);
-            setTxModalType(type || 'expense');
-            setIsTxModalOpen(true);
-          }}
-        />
+        <ErrorBoundary
+          fallback={
+            <div className="glass-card rounded-3xl p-6 sm:p-8 text-center space-y-4 border border-rose-200 dark:border-rose-900/40">
+              <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white">Unable to display Monthly Report</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">There was a temporary rendering issue. Please try refreshing.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  loadAnalyticsData(false);
+                  window.location.reload();
+                }}
+                className="px-4 py-2 rounded-2xl bg-[#088ac1] hover:bg-[#076e9d] text-white text-xs font-bold transition-all cursor-pointer"
+              >
+                Reload Report
+              </button>
+            </div>
+          }
+        >
+          <MonthlyReportsSection
+            analyticsData={analyticsData}
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+            accounts={accounts}
+            loading={loading}
+            onRefresh={() => loadAnalyticsData(false)}
+            onAddTransaction={(type) => {
+              setEditingTransaction(null);
+              setTxModalType(type || 'expense');
+              setIsTxModalOpen(true);
+            }}
+          />
+        </ErrorBoundary>
       )}
 
       {/* TAB 4: ALL RECORDS & SEARCHABLE LEDGER */}

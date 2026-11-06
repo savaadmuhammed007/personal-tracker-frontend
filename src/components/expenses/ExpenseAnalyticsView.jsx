@@ -46,6 +46,8 @@ import {
   Receipt,
   X,
   Plus,
+  Layers,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
