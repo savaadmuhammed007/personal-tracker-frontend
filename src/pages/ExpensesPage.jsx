@@ -43,6 +43,7 @@ import {
   Layers,
   ArrowRight,
   BookOpen,
+  AlertCircle,
 } from 'lucide-react';
 import { expenseApi } from '../api/expenseApi';
 import { useNotification } from '../context/NotificationContext';
