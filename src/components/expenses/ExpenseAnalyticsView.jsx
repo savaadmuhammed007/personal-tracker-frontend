@@ -65,6 +65,7 @@ import {
 } from 'recharts';
 import { formatCurrency } from '../../data/expenseCategories';
 import { expenseApi } from '../../api/expenseApi';
+import { MonthlyReportsSection } from './MonthlyReportsSection';
 
 const ICON_MAP = {
   Utensils,
@@ -106,10 +107,13 @@ export const ExpenseAnalyticsView = ({
   analyticsData,
   selectedMonth,
   setSelectedMonth,
+  accounts = [],
   loading = false,
   onAddTransaction,
   onRefresh,
+  onNavigateToReports,
 }) => {
+  const [analyticsViewTab, setAnalyticsViewTab] = useState('all'); // 'all' | 'reports' | 'overview'
   const [chartViewMode, setChartViewMode] = useState('daily'); // 'daily' | 'cumulative' | 'history6m'
   const [activeCategoryTab, setActiveCategoryTab] = useState('expense'); // 'expense' | 'income'
   const [hoveredSliceIndex, setHoveredSliceIndex] = useState(null);
@@ -489,7 +493,66 @@ export const ExpenseAnalyticsView = ({
         </div>
       )}
 
-      {/* 2. Executive Financial Health Bento Grid */}
+      {/* Analytics Suite Sub-View Switcher */}
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none p-1 bg-slate-100 dark:bg-white/[0.04] rounded-2xl border border-slate-200/80 dark:border-white/5">
+        <button
+          type="button"
+          onClick={() => setAnalyticsViewTab('all')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
+            analyticsViewTab === 'all'
+              ? 'bg-white dark:bg-slate-700 text-[#088ac1] dark:text-[#3dc3f3] shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Complete Financial Suite</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setAnalyticsViewTab('reports')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
+            analyticsViewTab === 'reports'
+              ? 'bg-white dark:bg-slate-700 text-[#088ac1] dark:text-[#3dc3f3] shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Receipt className="w-3.5 h-3.5 text-cyan-500" />
+          <span>Monthly Base Reports & Category Intelligence</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-[#088ac1]/15 text-[#088ac1] dark:text-[#3dc3f3] font-mono font-bold">
+            New
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setAnalyticsViewTab('overview')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
+            analyticsViewTab === 'overview'
+              ? 'bg-white dark:bg-slate-700 text-[#088ac1] dark:text-[#3dc3f3] shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span>Cashflow Visualizers</span>
+        </button>
+      </div>
+
+      {/* Standalone Monthly Base Reports View */}
+      {analyticsViewTab === 'reports' && (
+        <MonthlyReportsSection
+          analyticsData={analyticsData}
+          selectedMonth={selectedMonth}
+          setSelectedMonth={setSelectedMonth}
+          accounts={accounts}
+          loading={loading}
+          onAddTransaction={onAddTransaction}
+          onRefresh={onRefresh}
+        />
+      )}
+
+      {/* Visualizers & Matrix (Rendered when in 'all' or 'overview' mode) */}
+      {(analyticsViewTab === 'all' || analyticsViewTab === 'overview') && (
+        <>
+          {/* 2. Executive Financial Health Bento Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         {/* Card 1: Monthly Total Inflow (Income) */}
         <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-950/40 dark:via-[#0b1822] dark:to-[#0b1822] border border-emerald-500/20 dark:border-emerald-500/30 flex flex-col justify-between shadow-xs relative overflow-hidden group">
@@ -1076,6 +1139,46 @@ export const ExpenseAnalyticsView = ({
         </div>
       </div>
 
+      {/* Integrated Monthly Base Reports & Category Intelligence in Full Suite */}
+      {analyticsViewTab === 'all' && (
+        <MonthlyReportsSection
+          analyticsData={analyticsData}
+          selectedMonth={selectedMonth}
+          setSelectedMonth={setSelectedMonth}
+          accounts={accounts}
+          loading={loading}
+          onAddTransaction={onAddTransaction}
+          onRefresh={onRefresh}
+        />
+      )}
+
+      {/* Overview Mode Prompt Banner */}
+      {analyticsViewTab === 'overview' && (
+        <div className="glass-card rounded-3xl p-5 sm:p-6 shadow-soft border border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-[#088ac1]/10 via-transparent to-transparent">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-[#088ac1]/15 text-[#088ac1] dark:text-[#3dc3f3]">
+              <FileSpreadsheet className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
+                Detailed Monthly Base Reports & Category Breakdown
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Inspect category spend velocity, transaction count, average size, and searchable journal.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAnalyticsViewTab('reports')}
+            className="px-4 py-2 rounded-2xl bg-[#088ac1] hover:bg-[#076e9d] text-white text-xs font-bold transition-all cursor-pointer active:scale-95 shrink-0 flex items-center gap-1.5"
+          >
+            <span>Open Monthly Reports & Categories</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* 5. Top 5 Major Debits (Highest Spending Outliers) */}
       <div className="glass-card rounded-3xl p-5 sm:p-7 shadow-soft space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800/80">
@@ -1179,6 +1282,8 @@ export const ExpenseAnalyticsView = ({
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* 7. Category Recent Transactions Drilldown Modal */}
       {selectedCategoryModal && (

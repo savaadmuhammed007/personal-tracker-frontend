@@ -53,6 +53,7 @@ import { OpeningBalanceModal } from '../components/modals/OpeningBalanceModal';
 import { AccountFormModal } from '../components/modals/AccountFormModal';
 import { AccountStatementModal } from '../components/modals/AccountStatementModal';
 import { ExpenseAnalyticsView } from '../components/expenses/ExpenseAnalyticsView';
+import { MonthlyReportsSection } from '../components/expenses/MonthlyReportsSection';
 import { CreditBookView } from '../components/expenses/CreditBookView';
 import { generateLedgerPdf } from '../utils/ledgerPdfGenerator';
 
@@ -226,7 +227,7 @@ export const ExpensesPage = () => {
   }, [activeTab, loadDailyData, loadAnalyticsData, refreshKey]);
 
   useEffect(() => {
-    if (activeTab === 'analytics') {
+    if (activeTab === 'analytics' || activeTab === 'monthly_reports') {
       loadAnalyticsData();
     } else if (activeTab === 'ledger') {
       loadLedgerTransactions();
@@ -290,7 +291,7 @@ export const ExpensesPage = () => {
       }
     }
 
-    if (activeTab === 'analytics') {
+    if (activeTab === 'analytics' || activeTab === 'monthly_reports') {
       loadAnalyticsData(true);
     }
     setRefreshKey((k) => k + 1);
@@ -561,6 +562,18 @@ export const ExpensesPage = () => {
           >
             <BarChart3 className="w-3.5 h-3.5" />
             Analytics
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('monthly_reports')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
+              activeTab === 'monthly_reports'
+                ? 'bg-white dark:bg-slate-700 text-[#088ac1] dark:text-[#3dc3f3] shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            Monthly Reports
           </button>
           <button
             type="button"
@@ -1384,6 +1397,25 @@ export const ExpensesPage = () => {
           analyticsData={analyticsData}
           selectedMonth={selectedMonth}
           setSelectedMonth={setSelectedMonth}
+          accounts={accounts}
+          loading={loading}
+          onRefresh={() => loadAnalyticsData(false)}
+          onAddTransaction={(type) => {
+            setEditingTransaction(null);
+            setTxModalType(type || 'expense');
+            setIsTxModalOpen(true);
+          }}
+          onNavigateToReports={() => setActiveTab('monthly_reports')}
+        />
+      )}
+
+      {/* TAB: MONTHLY BASE REPORTS & CATEGORY ANALYTICS */}
+      {activeTab === 'monthly_reports' && (
+        <MonthlyReportsSection
+          analyticsData={analyticsData}
+          selectedMonth={selectedMonth}
+          setSelectedMonth={setSelectedMonth}
+          accounts={accounts}
           loading={loading}
           onRefresh={() => loadAnalyticsData(false)}
           onAddTransaction={(type) => {
